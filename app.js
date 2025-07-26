@@ -6,88 +6,30 @@ let chatHistory = [];
 let interactionCount = 0;
 
 // Configuration
-const API_BASE_URL = 'http://localhost:5001'; // Will connect to Python backend
+const API_BASE_URL = 'http://localhost:5001';
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing app...');
     showUpload();
-    resetWorkflow();
 });
 
-function resetWorkflow() {
-    const stepElements = document.querySelectorAll('.workflow-step');
-    stepElements.forEach(element => {
-        element.classList.remove('completed', 'active');
-        element.classList.add('pending');
-    });
-    updateWorkflowStep('upload', 'pending');
-}
-
 // Utility functions
-function updateWorkflowStep(step, status) {
-    const stepElement = document.querySelector(`[data-step="${step}"]`);
-    if (!stepElement) return;
-    
-    // Remove existing status classes
-    stepElement.classList.remove('completed', 'active', 'pending');
-    
-    // Add new status class
-    stepElement.classList.add(status);
-    
-    // Update icon based on status
-    const icon = stepElement.querySelector('.step-icon');
-    if (icon) {
-        if (status === 'completed') {
-            icon.innerHTML = '<i class="fas fa-check"></i>';
-        } else if (status === 'active') {
-            const stepNumber = stepElement.dataset.step === 'upload' ? '1' : 
-                             stepElement.dataset.step === 'analysis' ? '2' :
-                             stepElement.dataset.step === 'planning' ? '3' : '4';
-            icon.innerHTML = stepNumber;
-        } else {
-            const stepNumber = stepElement.dataset.step === 'upload' ? '1' : 
-                             stepElement.dataset.step === 'analysis' ? '2' :
-                             stepElement.dataset.step === 'planning' ? '3' : '4';
-            icon.innerHTML = stepNumber;
-        }
-    }
-    
-    // Update status text in the sidebar
-    if (status === 'completed') {
-        const statusElement = stepElement.querySelector('.upload-status, .analysis-status');
-        if (statusElement && step === 'upload') {
-            statusElement.classList.remove('hidden');
-            statusElement.querySelector('.filename').textContent = document.getElementById('csvFile').files[0]?.name || '';
-        } else if (statusElement && step === 'analysis') {
-            statusElement.classList.remove('hidden');
-        }
-    }
-}
-
-function getStepName(step) {
-    const stepNames = {
-        'upload': 'Data Upload',
-        'analysis': 'Data Intelligence Analysis',
-        'planning': 'Task Planning',
-        'execution': 'Task Execution'
-    };
-    return stepNames[step] || step;
-}
-
 function showSection(sectionId) {
-    // Hide all sections
     const sections = ['upload-section', 'analysis-section', 'planning-section', 'chat-section', 'visualization-section'];
     sections.forEach(id => {
         const element = document.getElementById(id);
-        if (element) element.classList.add('hidden');
+        if (element) {
+            element.classList.add('hidden');
+        }
     });
     
-    // Show target section
     const targetElement = document.getElementById(sectionId);
-    if (targetElement) targetElement.classList.remove('hidden');
+    if (targetElement) {
+        targetElement.classList.remove('hidden');
+    }
 }
 
-// Navigation functions
 function showUpload() {
     showSection('upload-section');
 }
@@ -100,6 +42,17 @@ function showPlanning() {
     showSection('planning-section');
 }
 
+function updateWorkflowStep(step, status) {
+    console.log(`Updating workflow step: ${step} to ${status}`);
+}
+
+function updateSessionInfo() {
+    const interactionElement = document.getElementById('interaction-count');
+    if (interactionElement) {
+        interactionElement.textContent = interactionCount;
+    }
+}
+
 function resetApp() {
     csvData = null;
     analysisResults = null;
@@ -108,43 +61,11 @@ function resetApp() {
     interactionCount = 0;
     showUpload();
     
-    // Reset workflow
-    const stepElements = document.querySelectorAll('.workflow-step');
-    stepElements.forEach(element => {
-        element.classList.remove('completed', 'active');
-        element.classList.add('pending');
-    });
-    
-    // Reset file input
     const fileInput = document.getElementById('csvFile');
     if (fileInput) fileInput.value = '';
     
-    // Hide analyze button
     const analyzeBtn = document.getElementById('analyzeBtn');
     if (analyzeBtn) analyzeBtn.classList.add('hidden');
-    
-    // Reset upload area
-    const uploadArea = document.querySelector('.upload-area');
-    if (uploadArea) {
-        uploadArea.innerHTML = `
-            <div class="mb-6">
-                <i class="fas fa-upload text-3xl text-blue-600"></i>
-            </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Upload Your CSV File</h3>
-            <p class="text-gray-500 mb-2">Drag and drop your CSV file here, or click to browse</p>
-            <div class="flex items-center justify-center text-sm text-gray-400 mt-4">
-                <i class="fas fa-info-circle mr-2"></i>
-                <span>Supports CSV files up to 10MB</span>
-            </div>
-        `;
-    }
-}
-
-function updateSessionInfo() {
-    const interactionElement = document.getElementById('interaction-count');
-    if (interactionElement) {
-        interactionElement.textContent = interactionCount;
-    }
 }
 
 // File upload handling
@@ -157,12 +78,11 @@ function handleFileUpload(event) {
         return;
     }
     
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+    if (file.size > 10 * 1024 * 1024) {
         alert('File size must be less than 10MB');
         return;
     }
     
-    // Read file content
     const reader = new FileReader();
     reader.onload = function(e) {
         const csvContent = e.target.result;
@@ -186,11 +106,6 @@ function handleFileUpload(event) {
         
         const analyzeBtn = document.getElementById('analyzeBtn');
         if (analyzeBtn) analyzeBtn.classList.remove('hidden');
-        
-        const chooseBtn = document.getElementById('chooseFileBtn');
-        if (chooseBtn) chooseBtn.style.display = 'none';
-        
-        updateWorkflowStep('upload', 'completed');
     };
     
     reader.readAsText(file);
@@ -216,121 +131,85 @@ function parseCSV(csvContent) {
     return data;
 }
 
-// Analysis functions  
-async function startAnalysis() {
+// Analysis functions
+function startAnalysis() {
     if (!csvData) {
         alert('Please upload a CSV file first');
         return;
     }
     
+    console.log('Starting analysis...');
     showSection('analysis-section');
-    updateWorkflowStep('analysis', 'active');
     
     // Hide results and show spinner
-    document.getElementById('analysis-results').classList.add('hidden');
-    document.getElementById('analysis-spinner').classList.remove('hidden');
+    const spinner = document.getElementById('analysis-spinner');
+    const results = document.getElementById('analysis-results');
     
-    try {
-        // Create immediate basic analysis for faster response
-        const basicAnalysis = createBasicAnalysis(csvData);
-        
-        // Display basic results immediately after short delay
-        setTimeout(() => {
-            displayAnalysisResults(basicAnalysis);
-            updateWorkflowStep('analysis', 'completed');
-        }, 1500); // Show spinner for realistic analysis time
-        
-    } catch (error) {
-        console.error('Analysis failed:', error);
-        alert('Analysis failed. Please try again.');
-        showUpload();
-    }
+    if (spinner) spinner.classList.remove('hidden');
+    if (results) results.classList.add('hidden');
+    
+    // Simulate analysis process
+    setTimeout(() => {
+        performAnalysis();
+    }, 1500);
 }
 
-function createBasicAnalysis(data) {
-    if (!data || data.length === 0) return null;
-    // Analyze data structure
-    const columns = Object.keys(data[0]);
+function performAnalysis() {
+    if (!csvData || csvData.length === 0) return;
+    
+    // Basic analysis
+    const columns = Object.keys(csvData[0]);
     const numericColumns = columns.filter(col => 
-        data.some(row => row[col] && !isNaN(parseFloat(row[col])))
-    );
-    const categoricalColumns = columns.filter(col => 
-        !numericColumns.includes(col) && 
-        new Set(data.map(row => row[col])).size < data.length * 0.5
+        csvData.some(row => row[col] && !isNaN(parseFloat(row[col])))
     );
     
-    // Detect business domain (simplified)
     const domainType = detectBusinessDomain(columns);
     
-    return {
+    analysisResults = {
         basic_stats: {
-            rows: data.length,
+            rows: csvData.length,
             columns: columns.length
-        },
-        column_analysis: {
-            numeric: numericColumns,
-            categorical: categoricalColumns
         },
         domain: {
             type: domainType,
-            confidence: 0.85,
-            indicators: [`Found ${numericColumns.length} numeric columns`, `Detected ${categoricalColumns.length} categorical fields`]
+            confidence: 0.85
         }
     };
-}
-
-function displayAnalysisResults(results) {
-    if (!results) return;
     
-    analysisResults = results;
-    
-    // Hide spinner and show results
+    // Update UI
     const spinner = document.getElementById('analysis-spinner');
-    const resultsDiv = document.getElementById('analysis-results');
+    const results = document.getElementById('analysis-results');
     
     if (spinner) spinner.classList.add('hidden');
-    if (resultsDiv) resultsDiv.classList.remove('hidden');
+    if (results) results.classList.remove('hidden');
     
     // Update summary cards
     const rowsCount = document.getElementById('rows-count');
     const columnsCount = document.getElementById('columns-count');
-    const domainType = document.getElementById('domain-type');
+    const domainTypeElement = document.getElementById('domain-type');
     
-    if (rowsCount) rowsCount.textContent = results.basic_stats.rows.toLocaleString();
-    if (columnsCount) columnsCount.textContent = results.basic_stats.columns;
-    if (domainType) domainType.textContent = results.domain.type;
+    if (rowsCount) rowsCount.textContent = analysisResults.basic_stats.rows.toLocaleString();
+    if (columnsCount) columnsCount.textContent = analysisResults.basic_stats.columns;
+    if (domainTypeElement) domainTypeElement.textContent = analysisResults.domain.type;
     
-    // Populate domain info
-    document.getElementById('domain-info').innerHTML = `
-        <div class="bg-indigo-50 p-4 rounded-lg">
-            <div class="text-2xl font-bold text-indigo-800">${domainType.charAt(0).toUpperCase() + domainType.slice(1)}</div>
-            <div class="text-sm text-indigo-600">Detected Domain</div>
-        </div>
-        <div class="bg-amber-50 p-4 rounded-lg">
-            <div class="text-2xl font-bold text-amber-800">${(analysisResults.domain.confidence * 100).toFixed(0)}%</div>
-            <div class="text-sm text-amber-600">Confidence</div>
-        </div>
-        <div class="text-sm text-gray-600">
-            <strong>Key Indicators:</strong>
-            <ul class="list-disc list-inside mt-2">
-                ${analysisResults.domain.indicators.map(indicator => `<li>${indicator}</li>`).join('')}
-            </ul>
-        </div>
-    `;
+    // Show continue button
+    const continueBtn = document.getElementById('continueToPlanning');
+    if (continueBtn) continueBtn.classList.remove('hidden');
     
-    document.getElementById('continueToPlanning').classList.remove('hidden');
-    updateWorkflowStep('analysis', 'completed');
-    interactionCount++;
-    updateSessionInfo();
+    console.log('Analysis completed successfully');
 }
 
 function detectBusinessDomain(columns) {
     const columnNames = columns.map(col => col.toLowerCase());
     
-    // Simple domain detection logic
+    const restaurantKeywords = ['restaurant', 'menu', 'food', 'order', 'meal', 'dish', 'cuisine'];
     const ecommerceKeywords = ['price', 'product', 'order', 'customer', 'sales', 'revenue'];
     const saasKeywords = ['user', 'subscription', 'trial', 'plan', 'feature'];
     const financeKeywords = ['amount', 'balance', 'transaction', 'account', 'payment'];
+    
+    const restaurantScore = restaurantKeywords.filter(keyword => 
+        columnNames.some(col => col.includes(keyword))
+    ).length;
     
     const ecommerceScore = ecommerceKeywords.filter(keyword => 
         columnNames.some(col => col.includes(keyword))
@@ -344,44 +223,26 @@ function detectBusinessDomain(columns) {
         columnNames.some(col => col.includes(keyword))
     ).length;
     
-    if (ecommerceScore >= saasScore && ecommerceScore >= financeScore) {
-        return 'e-commerce';
+    if (restaurantScore > 0) {
+        return 'Restaurant';
+    } else if (ecommerceScore >= saasScore && ecommerceScore >= financeScore) {
+        return 'E-commerce';
     } else if (saasScore >= financeScore) {
-        return 'saas';
+        return 'SaaS';
     } else if (financeScore > 0) {
-        return 'finance';
+        return 'Finance';
     } else {
-        return 'general';
+        return 'General';
     }
 }
 
 // Planning functions
-function showPlanning() {
-    showSection('planning-section');
-    updateWorkflowStep('planning', 'active');
-}
-
 function startChat() {
     showSection('chat-section');
-    updateWorkflowStep('execution', 'active');
-    
-    // Populate chat context
-    if (analysisResults) {
-        document.getElementById('chat-context').innerHTML = `
-            <strong>Domain:</strong> ${analysisResults.domain.type} (${(analysisResults.domain.confidence * 100).toFixed(0)}% confidence)<br>
-            <strong>Data Shape:</strong> ${analysisResults.basic_stats.rows} rows × ${analysisResults.basic_stats.columns} columns
-        `;
-    }
 }
 
 function startVisualization() {
     showSection('visualization-section');
-    updateWorkflowStep('execution', 'active');
-    
-    // Generate visualization suggestions
-    setTimeout(() => {
-        generateVisualizationSuggestions();
-    }, 2000);
 }
 
 // Chat functions
@@ -391,427 +252,80 @@ function sendChatMessage() {
     
     if (!question) return;
     
-    // Add question to chat history
-    const chatHistoryDiv = document.getElementById('chat-history');
-    chatHistoryDiv.innerHTML += `
-        <div class="mb-4">
-            <div class="font-bold text-gray-800">You:</div>
-            <div class="text-gray-600">${question}</div>
-        </div>
-    `;
-    
-    // Simulate AI response
-    chatHistoryDiv.innerHTML += `
-        <div class="mb-4">
-            <div class="font-bold text-blue-600">AI:</div>
-            <div class="text-gray-600 bg-blue-50 p-3 rounded">
-                <i class="fas fa-spinner fa-spin mr-2"></i>Analyzing your question...
-            </div>
-        </div>
-    `;
-    
-    // Scroll to bottom
-    chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
-    
-    // Clear input
+    // Add to chat history
+    addChatMessage('user', question);
     input.value = '';
     
-    // Simulate response delay
+    // Simulate AI response
     setTimeout(() => {
         const response = generateChatResponse(question);
-        const responseElements = chatHistoryDiv.querySelectorAll('.bg-blue-50');
-        const lastResponse = responseElements[responseElements.length - 1];
-        lastResponse.innerHTML = response;
-        
-        chatHistory.push({ question, response });
-        interactionCount++;
-        updateSessionInfo();
-    }, 2000);
+        addChatMessage('assistant', response);
+    }, 1000);
+}
+
+function addChatMessage(role, message) {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `mb-4 ${role === 'user' ? 'text-right' : 'text-left'}`;
+    
+    messageDiv.innerHTML = `
+        <div class="inline-block max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+            role === 'user' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-200 text-gray-800'
+        }">
+            ${message}
+        </div>
+    `;
+    
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 function generateChatResponse(question) {
-    if (!analysisResults) return "I need to analyze your data first before I can answer questions.";
-    
-    const domainType = analysisResults.domain.type;
-    const rowCount = analysisResults.basic_stats.rows;
-    const columnCount = analysisResults.basic_stats.columns;
-    
-    // Simple response generation based on question keywords
-    const questionLower = question.toLowerCase();
-    
-    if (questionLower.includes('trend') || questionLower.includes('pattern')) {
-        return `Based on your ${domainType} dataset with ${rowCount} records, I can see several interesting patterns. The data spans ${columnCount} different attributes, which suggests rich analytical possibilities. Key trends would be visible through time-series analysis of your numeric columns.`;
-    } else if (questionLower.includes('insight') || questionLower.includes('analysis')) {
-        return `Your ${domainType} data contains ${rowCount} records across ${columnCount} dimensions. Key insights include the distribution patterns in your categorical variables and correlations between numeric fields. The data quality appears good with a confidence level of ${(analysisResults.domain.confidence * 100).toFixed(0)}% for domain classification.`;
-    } else if (questionLower.includes('recommend') || questionLower.includes('suggest')) {
-        return `For your ${domainType} dataset, I recommend focusing on the ${analysisResults.column_analysis.numeric.length} numeric columns for quantitative analysis and the ${analysisResults.column_analysis.categorical.length} categorical columns for segmentation. Consider creating time-series visualizations if you have date columns.`;
-    } else {
-        return `That's an interesting question about your ${domainType} data. With ${rowCount} records and ${columnCount} columns, there are many analytical angles to explore. Could you be more specific about what aspect of the data you'd like to understand better?`;
+    if (!analysisResults) {
+        return "Please analyze your data first before asking questions.";
     }
+    
+    const responses = [
+        `Based on your ${analysisResults.domain.type} data with ${analysisResults.basic_stats.rows} rows, here's what I found: The dataset shows interesting patterns that could help with business decisions.`,
+        `Looking at your ${analysisResults.basic_stats.columns} columns of data, I can see several key insights. The ${analysisResults.domain.type} domain suggests specific analysis opportunities.`,
+        `Your dataset contains ${analysisResults.basic_stats.rows} records across ${analysisResults.basic_stats.columns} fields. For ${analysisResults.domain.type} businesses, this data can reveal important trends.`
+    ];
+    
+    return responses[Math.floor(Math.random() * responses.length)];
 }
 
 // Visualization functions
 function generateVisualizationSuggestions() {
-    document.getElementById('viz-loading').classList.add('hidden');
-    document.getElementById('viz-suggestions').classList.remove('hidden');
+    const suggestions = document.getElementById('viz-suggestions');
+    if (!suggestions) return;
     
-    if (!analysisResults) return;
-    
-    const domainType = analysisResults.domain.type;
-    document.getElementById('domain-type').textContent = domainType.charAt(0).toUpperCase() + domainType.slice(1);
-    
-    // Generate suggestions based on domain and data structure
-    const suggestions = generateChartSuggestions(domainType, analysisResults);
-    
-    const chartSuggestionsDiv = document.getElementById('chart-suggestions');
-    chartSuggestionsDiv.innerHTML = '';
-    
-    suggestions.forEach((suggestion, index) => {
-        const chartCard = document.createElement('div');
-        chartCard.className = 'chart-card bg-white rounded-xl p-6 shadow-lg border-2 border-gray-200 hover:border-blue-300 transition-all duration-200 cursor-pointer';
-        chartCard.onclick = () => toggleChartSelection(index, chartCard);
-        
-        chartCard.innerHTML = `
-            <div class="flex items-start justify-between mb-3">
-                <h3 class="text-lg font-bold text-gray-800">${suggestion.title}</h3>
-                <span class="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-medium px-3 py-1 rounded-full">
-                    ${suggestion.chart_type.charAt(0).toUpperCase() + suggestion.chart_type.slice(1)}
-                </span>
+    suggestions.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-lg border cursor-pointer hover:shadow-md">
+                <h4 class="font-semibold mb-2">Sales Trend Chart</h4>
+                <p class="text-gray-600 text-sm">Track performance over time</p>
             </div>
-            <p class="text-gray-600 text-sm mb-3">${suggestion.description}</p>
-            <div class="text-xs text-gray-500">
-                <strong>Business Value:</strong> ${suggestion.domain_value}
+            <div class="bg-white p-6 rounded-lg border cursor-pointer hover:shadow-md">
+                <h4 class="font-semibold mb-2">Category Distribution</h4>
+                <p class="text-gray-600 text-sm">See data breakdown by category</p>
             </div>
-            <div class="hidden mt-3">
-                <i class="fas fa-check-circle text-green-500 text-xl"></i>
-            </div>
-        `;
-        
-        chartSuggestionsDiv.appendChild(chartCard);
-    });
-    
-    // Store suggestions globally
-    window.chartSuggestions = suggestions;
-}
-
-function generateChartSuggestions(domainType, analysisResults) {
-    const numericCols = analysisResults.column_analysis.numeric;
-    const categoricalCols = analysisResults.column_analysis.categorical;
-    
-    const suggestions = [];
-    
-    if (domainType === 'e-commerce') {
-        suggestions.push(
-            {
-                title: 'Revenue Trends Over Time',
-                chart_type: 'line',
-                description: 'Track sales performance and identify seasonal patterns',
-                domain_value: 'Essential for understanding business growth and forecasting'
-            },
-            {
-                title: 'Product Category Performance',
-                chart_type: 'bar',
-                description: 'Compare revenue across different product categories',
-                domain_value: 'Helps identify top-performing product lines'
-            },
-            {
-                title: 'Customer Segmentation',
-                chart_type: 'pie',
-                description: 'Visualize customer distribution by segments',
-                domain_value: 'Supports targeted marketing strategies'
-            }
-        );
-    } else if (domainType === 'saas') {
-        suggestions.push(
-            {
-                title: 'User Growth Metrics',
-                chart_type: 'line',
-                description: 'Monitor user acquisition and retention trends',
-                domain_value: 'Critical for understanding product adoption'
-            },
-            {
-                title: 'Feature Usage Analysis',
-                chart_type: 'bar',
-                description: 'Compare usage across different product features',
-                domain_value: 'Guides product development priorities'
-            },
-            {
-                title: 'Subscription Plans Distribution',
-                chart_type: 'pie',
-                description: 'Analyze subscription tier preferences',
-                domain_value: 'Informs pricing strategy decisions'
-            }
-        );
-    } else {
-        // General suggestions
-        if (numericCols.length > 0) {
-            suggestions.push({
-                title: `${numericCols[0]} Distribution`,
-                chart_type: 'histogram',
-                description: `Analyze the distribution pattern of ${numericCols[0]} values`,
-                domain_value: 'Understanding data distribution is crucial for analysis'
-            });
-        }
-        
-        if (categoricalCols.length > 0) {
-            suggestions.push({
-                title: `${categoricalCols[0]} Breakdown`,
-                chart_type: 'pie',
-                description: `Show the composition of different ${categoricalCols[0]} categories`,
-                domain_value: 'Category analysis helps identify key segments'
-            });
-        }
-        
-        if (numericCols.length >= 2) {
-            suggestions.push({
-                title: `${numericCols[0]} vs ${numericCols[1]}`,
-                chart_type: 'scatter',
-                description: `Explore relationship between ${numericCols[0]} and ${numericCols[1]}`,
-                domain_value: 'Correlation analysis reveals important relationships'
-            });
-        }
-    }
-    
-    return suggestions;
-}
-
-function toggleChartSelection(index, cardElement) {
-    const checkIcon = cardElement.querySelector('.fas.fa-check-circle').parentElement;
-    
-    if (selectedCharts.includes(index)) {
-        // Deselect
-        selectedCharts = selectedCharts.filter(i => i !== index);
-        cardElement.classList.remove('selected');
-        cardElement.classList.remove('border-blue-400', 'bg-blue-50');
-        cardElement.classList.add('border-gray-200');
-        checkIcon.classList.add('hidden');
-    } else {
-        // Select
-        selectedCharts.push(index);
-        cardElement.classList.add('selected');
-        cardElement.classList.remove('border-gray-200');
-        cardElement.classList.add('border-blue-400', 'bg-blue-50');
-        checkIcon.classList.remove('hidden');
-    }
-    
-    updateSelectedCount();
-}
-
-function updateSelectedCount() {
-    const countElement = document.getElementById('selected-count');
-    const generateButton = document.getElementById('generateDashboard');
-    
-    if (selectedCharts.length > 0) {
-        countElement.textContent = `✅ ${selectedCharts.length} visualization${selectedCharts.length > 1 ? 's' : ''} selected`;
-        generateButton.classList.remove('hidden');
-    } else {
-        countElement.textContent = '';
-        generateButton.classList.add('hidden');
-    }
-}
-
-function generateDashboard() {
-    if (selectedCharts.length === 0) return;
-    
-    document.getElementById('dashboard').classList.remove('hidden');
-    document.getElementById('custom-viz').classList.remove('hidden');
-    
-    const dashboardChartsDiv = document.getElementById('dashboard-charts');
-    dashboardChartsDiv.innerHTML = '';
-    
-    selectedCharts.forEach((chartIndex, displayIndex) => {
-        const suggestion = window.chartSuggestions[chartIndex];
-        const chartDiv = document.createElement('div');
-        chartDiv.className = 'bg-white rounded-lg shadow-lg p-4';
-        chartDiv.innerHTML = `
-            <h4 class="text-lg font-bold text-gray-800 mb-4">${suggestion.title}</h4>
-            <div id="chart-${displayIndex}" style="height: 400px;"></div>
-        `;
-        dashboardChartsDiv.appendChild(chartDiv);
-        
-        // Generate sample chart
-        setTimeout(() => {
-            createSampleChart(`chart-${displayIndex}`, suggestion.chart_type, suggestion.title);
-        }, 100);
-    });
-    
-    interactionCount++;
-    updateSessionInfo();
-}
-
-function createSampleChart(elementId, chartType, title) {
-    if (!csvData || csvData.length === 0) return;
-    
-    const element = document.getElementById(elementId);
-    if (!element) return;
-    
-    // Generate sample data based on chart type and actual CSV data
-    let plotData, layout;
-    
-    if (chartType === 'bar') {
-        const categories = ['Category A', 'Category B', 'Category C', 'Category D'];
-        const values = [23, 45, 56, 78];
-        
-        plotData = [{
-            x: categories,
-            y: values,
-            type: 'bar',
-            marker: { color: '#3b82f6' }
-        }];
-        
-        layout = {
-            title: title,
-            xaxis: { title: 'Categories' },
-            yaxis: { title: 'Values' }
-        };
-    } else if (chartType === 'line') {
-        const x = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-        const y = [10, 15, 13, 17, 21, 25];
-        
-        plotData = [{
-            x: x,
-            y: y,
-            type: 'scatter',
-            mode: 'lines+markers',
-            line: { color: '#10b981' }
-        }];
-        
-        layout = {
-            title: title,
-            xaxis: { title: 'Time' },
-            yaxis: { title: 'Value' }
-        };
-    } else if (chartType === 'pie') {
-        const labels = ['Segment 1', 'Segment 2', 'Segment 3', 'Segment 4'];
-        const values = [30, 25, 25, 20];
-        
-        plotData = [{
-            labels: labels,
-            values: values,
-            type: 'pie',
-            textinfo: 'label+percent'
-        }];
-        
-        layout = {
-            title: title
-        };
-    } else if (chartType === 'scatter') {
-        const x = Array.from({length: 20}, () => Math.random() * 100);
-        const y = Array.from({length: 20}, () => Math.random() * 100);
-        
-        plotData = [{
-            x: x,
-            y: y,
-            mode: 'markers',
-            type: 'scatter',
-            marker: { color: '#8b5cf6', size: 10 }
-        }];
-        
-        layout = {
-            title: title,
-            xaxis: { title: 'X Axis' },
-            yaxis: { title: 'Y Axis' }
-        };
-    } else {
-        // Default histogram
-        const values = Array.from({length: 100}, () => Math.random() * 100);
-        
-        plotData = [{
-            x: values,
-            type: 'histogram',
-            marker: { color: '#f59e0b' }
-        }];
-        
-        layout = {
-            title: title,
-            xaxis: { title: 'Value' },
-            yaxis: { title: 'Frequency' }
-        };
-    }
-    
-    Plotly.newPlot(elementId, plotData, layout, {
-        responsive: true,
-        displayModeBar: false
-    });
-}
-
-function createCustomVisualization() {
-    const input = document.getElementById('customVizInput');
-    const request = input.value.trim();
-    
-    if (!request) return;
-    
-    // Create a new chart container
-    const dashboardChartsDiv = document.getElementById('dashboard-charts');
-    const chartIndex = dashboardChartsDiv.children.length;
-    
-    const chartDiv = document.createElement('div');
-    chartDiv.className = 'bg-white rounded-lg shadow-lg p-4';
-    chartDiv.innerHTML = `
-        <h4 class="text-lg font-bold text-gray-800 mb-4">Custom: ${request}</h4>
-        <div id="custom-chart-${chartIndex}" style="height: 400px;"></div>
+        </div>
     `;
-    dashboardChartsDiv.appendChild(chartDiv);
-    
-    // Generate chart based on request
-    setTimeout(() => {
-        createSampleChart(`custom-chart-${chartIndex}`, 'line', request);
-    }, 100);
-    
-    input.value = '';
-    interactionCount++;
-    updateSessionInfo();
 }
 
-// Session management
-function resetSession() {
-    if (confirm('Are you sure you want to start over? This will clear all current data and progress.')) {
-        // Reset all global variables
-        csvData = null;
-        analysisResults = null;
-        selectedCharts = [];
-        chatHistory = [];
-        interactionCount = 0;
-        
-        // Reset UI
-        showSection('upload-section');
-        updateWorkflowStep('upload', 'pending');
-        document.getElementById('csvFile').value = '';
-        document.getElementById('analyzeBtn').classList.add('hidden');
-        
-        // Reset upload area
-        document.querySelector('.upload-area').innerHTML = `
-            <div class="mb-4">
-                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
-            </div>
-            <h3 class="text-xl font-semibold text-gray-700 mb-2">📁 Upload Your CSV File</h3>
-            <p class="text-gray-500 mb-2">Drag and drop your CSV file here, or click to browse</p>
-            <p class="text-sm text-gray-400">Supports CSV files up to 10MB</p>
-        `;
-        
-        updateSessionInfo();
-        document.getElementById('session-status').textContent = 'Ready';
-    }
-}
-
-// Initialize app
-document.addEventListener('DOMContentLoaded', function() {
-    updateSessionInfo();
-    
-    // Add enter key listener for chat
-    document.getElementById('chatInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
+// Event handlers for enter key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+        const activeElement = document.activeElement;
+        if (activeElement && activeElement.id === 'chatInput') {
+            event.preventDefault();
             sendChatMessage();
         }
-    });
-    
-    // Add enter key listener for custom viz
-    document.getElementById('customVizInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            createCustomVisualization();
-        }
-    });
-    
-    // Set initial status
-    document.getElementById('session-status').textContent = 'Ready';
+    }
 });
+
+console.log('App script loaded successfully');
