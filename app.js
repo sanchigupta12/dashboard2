@@ -8,32 +8,60 @@ let interactionCount = 0;
 // Configuration
 const API_BASE_URL = 'http://localhost:5001'; // Will connect to Python backend
 
+// Initialize the application
+document.addEventListener('DOMContentLoaded', function() {
+    showUpload();
+    resetWorkflow();
+});
+
+function resetWorkflow() {
+    const stepElements = document.querySelectorAll('.workflow-step');
+    stepElements.forEach(element => {
+        element.classList.remove('completed', 'active');
+        element.classList.add('pending');
+    });
+    updateWorkflowStep('upload', 'pending');
+}
+
 // Utility functions
 function updateWorkflowStep(step, status) {
-    const steps = ['upload', 'analysis', 'planning', 'execution'];
-    const stepElements = document.querySelectorAll('.workflow-step');
+    const stepElement = document.querySelector(`[data-step="${step}"]`);
+    if (!stepElement) return;
     
-    steps.forEach((stepName, index) => {
-        const stepElement = stepElements[index];
-        const indicator = stepElement.querySelector('.step-indicator');
-        const container = stepElement.querySelector('div');
-        
-        if (stepName === step) {
-            if (status === 'active') {
-                indicator.className = 'step-indicator step-active';
-                container.className = 'flex items-center rounded-lg p-4 bg-white bg-opacity-30 border-l-4 border-yellow-400';
-                stepElement.querySelector('span:last-child').innerHTML = `🔄 ${getStepName(stepName)}`;
-            } else if (status === 'completed') {
-                indicator.className = 'step-indicator step-completed';
-                container.className = 'flex items-center rounded-lg p-4 bg-white bg-opacity-20 border-l-4 border-green-400';
-                stepElement.querySelector('span:last-child').innerHTML = `✅ ${getStepName(stepName)}`;
-            }
-        } else if (steps.indexOf(stepName) < steps.indexOf(step)) {
-            indicator.className = 'step-indicator step-completed';
-            container.className = 'flex items-center rounded-lg p-4 bg-white bg-opacity-20 border-l-4 border-green-400';
-            stepElement.querySelector('span:last-child').innerHTML = `✅ ${getStepName(stepName)}`;
+    // Remove existing status classes
+    stepElement.classList.remove('completed', 'active', 'pending');
+    
+    // Add new status class
+    stepElement.classList.add(status);
+    
+    // Update icon based on status
+    const icon = stepElement.querySelector('.step-icon');
+    if (icon) {
+        if (status === 'completed') {
+            icon.innerHTML = '<i class="fas fa-check"></i>';
+        } else if (status === 'active') {
+            const stepNumber = stepElement.dataset.step === 'upload' ? '1' : 
+                             stepElement.dataset.step === 'analysis' ? '2' :
+                             stepElement.dataset.step === 'planning' ? '3' : '4';
+            icon.innerHTML = stepNumber;
+        } else {
+            const stepNumber = stepElement.dataset.step === 'upload' ? '1' : 
+                             stepElement.dataset.step === 'analysis' ? '2' :
+                             stepElement.dataset.step === 'planning' ? '3' : '4';
+            icon.innerHTML = stepNumber;
         }
-    });
+    }
+    
+    // Update status text in the sidebar
+    if (status === 'completed') {
+        const statusElement = stepElement.querySelector('.upload-status, .analysis-status');
+        if (statusElement && step === 'upload') {
+            statusElement.classList.remove('hidden');
+            statusElement.querySelector('.filename').textContent = document.getElementById('csvFile').files[0]?.name || '';
+        } else if (statusElement && step === 'analysis') {
+            statusElement.classList.remove('hidden');
+        }
+    }
 }
 
 function getStepName(step) {
@@ -50,15 +78,73 @@ function showSection(sectionId) {
     // Hide all sections
     const sections = ['upload-section', 'analysis-section', 'planning-section', 'chat-section', 'visualization-section'];
     sections.forEach(id => {
-        document.getElementById(id).classList.add('hidden');
+        const element = document.getElementById(id);
+        if (element) element.classList.add('hidden');
     });
     
     // Show target section
-    document.getElementById(sectionId).classList.remove('hidden');
+    const targetElement = document.getElementById(sectionId);
+    if (targetElement) targetElement.classList.remove('hidden');
+}
+
+// Navigation functions
+function showUpload() {
+    showSection('upload-section');
+}
+
+function showAnalysis() {
+    showSection('analysis-section');
+}
+
+function showPlanning() {
+    showSection('planning-section');
+}
+
+function resetApp() {
+    csvData = null;
+    analysisResults = null;
+    selectedCharts = [];
+    chatHistory = [];
+    interactionCount = 0;
+    showUpload();
+    
+    // Reset workflow
+    const stepElements = document.querySelectorAll('.workflow-step');
+    stepElements.forEach(element => {
+        element.classList.remove('completed', 'active');
+        element.classList.add('pending');
+    });
+    
+    // Reset file input
+    const fileInput = document.getElementById('csvFile');
+    if (fileInput) fileInput.value = '';
+    
+    // Hide analyze button
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    if (analyzeBtn) analyzeBtn.classList.add('hidden');
+    
+    // Reset upload area
+    const uploadArea = document.querySelector('.upload-area');
+    if (uploadArea) {
+        uploadArea.innerHTML = `
+            <div class="mb-6">
+                <i class="fas fa-upload text-3xl text-blue-600"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Upload Your CSV File</h3>
+            <p class="text-gray-500 mb-2">Drag and drop your CSV file here, or click to browse</p>
+            <div class="flex items-center justify-center text-sm text-gray-400 mt-4">
+                <i class="fas fa-info-circle mr-2"></i>
+                <span>Supports CSV files up to 10MB</span>
+            </div>
+        `;
+    }
 }
 
 function updateSessionInfo() {
-    document.getElementById('interaction-count').textContent = interactionCount;
+    const interactionElement = document.getElementById('interaction-count');
+    if (interactionElement) {
+        interactionElement.textContent = interactionCount;
+    }
 }
 
 // File upload handling
@@ -83,16 +169,27 @@ function handleFileUpload(event) {
         csvData = parseCSV(csvContent);
         
         // Update UI
-        document.querySelector('.upload-area').innerHTML = `
-            <div class="mb-4">
-                <i class="fas fa-check-circle text-4xl text-green-500 mb-4"></i>
-            </div>
-            <h3 class="text-xl font-semibold text-gray-700 mb-2">✅ File Uploaded Successfully</h3>
-            <p class="text-gray-500 mb-2">${file.name}</p>
-            <p class="text-sm text-gray-400">${csvData.length} rows × ${csvData[0] ? Object.keys(csvData[0]).length : 0} columns</p>
-        `;
+        const uploadArea = document.querySelector('.upload-area');
+        if (uploadArea) {
+            uploadArea.innerHTML = `
+                <div class="mb-6">
+                    <i class="fas fa-check-circle text-3xl text-green-600"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">File Uploaded Successfully</h3>
+                <p class="text-gray-500 mb-2">${file.name}</p>
+                <div class="flex items-center justify-center text-sm text-gray-400 mt-4">
+                    <i class="fas fa-check-circle mr-2 text-green-500"></i>
+                    <span>${csvData.length} rows × ${csvData[0] ? Object.keys(csvData[0]).length : 0} columns</span>
+                </div>
+            `;
+        }
         
-        document.getElementById('analyzeBtn').classList.remove('hidden');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        if (analyzeBtn) analyzeBtn.classList.remove('hidden');
+        
+        const chooseBtn = document.getElementById('chooseFileBtn');
+        if (chooseBtn) chooseBtn.style.display = 'none';
+        
         updateWorkflowStep('upload', 'completed');
     };
     
@@ -119,36 +216,55 @@ function parseCSV(csvContent) {
     return data;
 }
 
-// Analysis functions
+// Analysis functions  
 async function startAnalysis() {
+    if (!csvData) {
+        alert('Please upload a CSV file first');
+        return;
+    }
+    
     showSection('analysis-section');
     updateWorkflowStep('analysis', 'active');
     
-    // Simulate analysis process
-    setTimeout(() => {
-        analyzeData();
-    }, 2000);
+    // Hide results and show spinner
+    document.getElementById('analysis-results').classList.add('hidden');
+    document.getElementById('analysis-spinner').classList.remove('hidden');
+    
+    try {
+        // Create immediate basic analysis for faster response
+        const basicAnalysis = createBasicAnalysis(csvData);
+        
+        // Display basic results immediately after short delay
+        setTimeout(() => {
+            displayAnalysisResults(basicAnalysis);
+            updateWorkflowStep('analysis', 'completed');
+        }, 1500); // Show spinner for realistic analysis time
+        
+    } catch (error) {
+        console.error('Analysis failed:', error);
+        alert('Analysis failed. Please try again.');
+        showUpload();
+    }
 }
 
-function analyzeData() {
-    if (!csvData || csvData.length === 0) return;
-    
+function createBasicAnalysis(data) {
+    if (!data || data.length === 0) return null;
     // Analyze data structure
-    const columns = Object.keys(csvData[0]);
+    const columns = Object.keys(data[0]);
     const numericColumns = columns.filter(col => 
-        csvData.some(row => row[col] && !isNaN(parseFloat(row[col])))
+        data.some(row => row[col] && !isNaN(parseFloat(row[col])))
     );
     const categoricalColumns = columns.filter(col => 
         !numericColumns.includes(col) && 
-        new Set(csvData.map(row => row[col])).size < csvData.length * 0.5
+        new Set(data.map(row => row[col])).size < data.length * 0.5
     );
     
     // Detect business domain (simplified)
     const domainType = detectBusinessDomain(columns);
     
-    analysisResults = {
+    return {
         basic_stats: {
-            rows: csvData.length,
+            rows: data.length,
             columns: columns.length
         },
         column_analysis: {
@@ -161,26 +277,28 @@ function analyzeData() {
             indicators: [`Found ${numericColumns.length} numeric columns`, `Detected ${categoricalColumns.length} categorical fields`]
         }
     };
+}
+
+function displayAnalysisResults(results) {
+    if (!results) return;
     
-    // Update UI
-    document.getElementById('analysis-spinner').classList.add('hidden');
-    document.getElementById('analysis-results').classList.remove('hidden');
+    analysisResults = results;
     
-    // Populate data metrics
-    document.getElementById('data-metrics').innerHTML = `
-        <div class="bg-blue-50 p-4 rounded-lg">
-            <div class="text-2xl font-bold text-blue-800">${analysisResults.basic_stats.rows.toLocaleString()}</div>
-            <div class="text-sm text-blue-600">Rows</div>
-        </div>
-        <div class="bg-green-50 p-4 rounded-lg">
-            <div class="text-2xl font-bold text-green-800">${analysisResults.basic_stats.columns}</div>
-            <div class="text-sm text-green-600">Columns</div>
-        </div>
-        <div class="bg-purple-50 p-4 rounded-lg">
-            <div class="text-2xl font-bold text-purple-800">${numericColumns.length}</div>
-            <div class="text-sm text-purple-600">Numeric Columns</div>
-        </div>
-    `;
+    // Hide spinner and show results
+    const spinner = document.getElementById('analysis-spinner');
+    const resultsDiv = document.getElementById('analysis-results');
+    
+    if (spinner) spinner.classList.add('hidden');
+    if (resultsDiv) resultsDiv.classList.remove('hidden');
+    
+    // Update summary cards
+    const rowsCount = document.getElementById('rows-count');
+    const columnsCount = document.getElementById('columns-count');
+    const domainType = document.getElementById('domain-type');
+    
+    if (rowsCount) rowsCount.textContent = results.basic_stats.rows.toLocaleString();
+    if (columnsCount) columnsCount.textContent = results.basic_stats.columns;
+    if (domainType) domainType.textContent = results.domain.type;
     
     // Populate domain info
     document.getElementById('domain-info').innerHTML = `
