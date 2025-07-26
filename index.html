@@ -8,40 +8,58 @@
     <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .workflow-step {
+            border-radius: 12px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
         }
         
-        .step-indicator {
+        .workflow-step.completed {
+            background-color: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .workflow-step.active {
+            background-color: #eff6ff;
+            border-left: 4px solid #6366f1;
+        }
+        
+        .workflow-step.pending {
+            background-color: #f9fafb;
+            border-left: 4px solid #d1d5db;
+        }
+        
+        .step-icon {
             width: 32px;
             height: 32px;
-            background: #667eea;
             border-radius: 50%;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
             font-weight: bold;
+            font-size: 14px;
             margin-right: 12px;
         }
         
-        .step-completed {
-            background: #10b981;
+        .step-completed .step-icon {
+            background-color: #3b82f6;
+            color: white;
         }
         
-        .step-active {
-            background: #f59e0b;
+        .step-active .step-icon {
+            background-color: #6366f1;
+            color: white;
             animation: pulse 2s infinite;
+        }
+        
+        .step-pending .step-icon {
+            background-color: #e5e7eb;
+            color: #6b7280;
         }
         
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.7; }
-        }
-        
-        .card-hover:hover {
-            transform: translateY(-2px);
-            transition: all 0.2s ease;
         }
         
         .upload-area {
@@ -55,150 +73,272 @@
         
         .chart-card {
             transition: all 0.2s ease;
+            cursor: pointer;
         }
         
         .chart-card:hover {
             transform: translateY(-1px);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         
         .chart-card.selected {
             border-color: #3b82f6;
             background-color: #eff6ff;
         }
+        
+        .sidebar {
+            background: #f8fafc;
+            border-right: 1px solid #e2e8f0;
+        }
+        
+        .main-content {
+            background: white;
+        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <!-- Header -->
-    <div class="text-center py-12">
-        <h1 class="text-5xl font-bold text-gray-800 mb-4">📊 CSV to Dashboard AI</h1>
-        <p class="text-xl text-gray-600">Multi-Agent Data Analytics Platform</p>
-    </div>
+<body class="bg-gray-100 min-h-screen">
+    <div class="flex h-screen">
+        <!-- Left Sidebar -->
+        <div class="sidebar w-80 p-6 overflow-y-auto">
+            <!-- Header -->
+            <div class="mb-8">
+                <div class="flex items-center mb-2">
+                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-content mr-3">
+                        <i class="fas fa-chart-bar text-white text-sm ml-2"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-900">CSV to Dashboard AI</h1>
+                        <p class="text-sm text-gray-600">Multi-Agent Data Analytics Platform</p>
+                    </div>
+                </div>
+            </div>
 
-    <!-- Main Container -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Workflow Progress -->
-        <div class="gradient-bg rounded-2xl p-8 mb-8 text-white">
-            <h3 class="text-2xl font-bold mb-6">🧠 AI Agent Workflow</h3>
-            <div id="workflow-steps" class="space-y-3">
-                <div class="workflow-step" data-step="upload">
-                    <div class="flex items-center rounded-lg p-4 bg-white bg-opacity-20 border-l-4 border-green-400">
-                        <span class="step-indicator step-completed">1</span>
-                        <span class="text-lg font-medium">📁 Data Upload</span>
-                    </div>
+            <!-- AI Agent Workflow -->
+            <div class="mb-6">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-robot text-gray-600 mr-2"></i>
+                    <h2 class="text-sm font-semibold text-gray-900">AI Agent Workflow</h2>
                 </div>
-                <div class="workflow-step" data-step="analysis">
-                    <div class="flex items-center rounded-lg p-4 bg-white bg-opacity-10 border-l-4 border-gray-400">
-                        <span class="step-indicator">2</span>
-                        <span class="text-lg font-medium">⏳ Data Intelligence Analysis</span>
+                
+                <div id="workflow-steps" class="space-y-2">
+                    <!-- Data Upload Step -->
+                    <div class="workflow-step completed p-4" data-step="upload">
+                        <div class="flex items-center">
+                            <div class="step-icon">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-900">Data Upload</div>
+                                <div class="text-xs text-gray-600 mt-1">Processing your CSV file and validating data structure</div>
+                                <div class="text-xs text-blue-600 mt-1 hidden upload-status">
+                                    Uploaded: <span class="filename"></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="workflow-step" data-step="planning">
-                    <div class="flex items-center rounded-lg p-4 bg-white bg-opacity-10 border-l-4 border-gray-400">
-                        <span class="step-indicator">3</span>
-                        <span class="text-lg font-medium">⏳ Task Planning</span>
+
+                    <!-- Data Intelligence Analysis Step -->
+                    <div class="workflow-step pending p-4" data-step="analysis">
+                        <div class="flex items-center">
+                            <div class="step-icon">2</div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-900">Data Intelligence Analysis</div>
+                                <div class="text-xs text-gray-600 mt-1">Analyzing columns, data types, and business domain patterns</div>
+                                <div class="text-xs text-blue-600 mt-1 hidden analysis-status">
+                                    Identified as <span class="domain"></span> domain
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="workflow-step" data-step="execution">
-                    <div class="flex items-center rounded-lg p-4 bg-white bg-opacity-10 border-l-4 border-gray-400">
-                        <span class="step-indicator">4</span>
-                        <span class="text-lg font-medium">⏳ Task Execution</span>
+
+                    <!-- Task Planning Step -->
+                    <div class="workflow-step pending p-4" data-step="planning">
+                        <div class="flex items-center">
+                            <div class="step-icon">3</div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-900">Task Planning</div>
+                                <div class="text-xs text-gray-600 mt-1">Planning available analysis options based on your data</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Execute Step -->
+                    <div class="workflow-step pending p-4" data-step="execution">
+                        <div class="flex items-center">
+                            <div class="step-icon">4</div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-900">Execute</div>
+                                <div class="text-xs text-gray-600 mt-1">Analysis & Insights</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Main Content Area -->
-        <div id="main-content">
+        <div class="main-content flex-1 overflow-y-auto">
+            <div id="main-content" class="p-8">
             <!-- Upload Section -->
-            <div id="upload-section" class="text-center">
-                <div class="mb-8">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-4">🎯 Transform Your Data with AI</h2>
-                    <p class="text-lg text-gray-600">Upload your CSV and let our AI agents create intelligent dashboards and insights in minutes</p>
+            <div id="upload-section">
+                <div class="text-center mb-12">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-6">
+                        <i class="fas fa-brain text-2xl text-blue-600"></i>
+                    </div>
+                    <h1 class="text-4xl font-bold text-gray-900 mb-4">Transform Your Data with AI</h1>
+                    <p class="text-xl text-gray-600 max-w-2xl mx-auto">Upload your CSV and let our AI agents create intelligent dashboards and insights in minutes</p>
                 </div>
                 
-                <div class="max-w-2xl mx-auto">
-                    <div class="upload-area bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center cursor-pointer" onclick="document.getElementById('csvFile').click()">
-                        <div class="mb-4">
-                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                <div class="max-w-lg mx-auto">
+                    <div class="upload-area bg-white border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer shadow-sm" onclick="document.getElementById('csvFile').click()">
+                        <div class="mb-6">
+                            <i class="fas fa-upload text-3xl text-blue-600"></i>
                         </div>
-                        <h3 class="text-xl font-semibold text-gray-700 mb-2">📁 Upload Your CSV File</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Upload Your CSV File</h3>
                         <p class="text-gray-500 mb-2">Drag and drop your CSV file here, or click to browse</p>
-                        <p class="text-sm text-gray-400">Supports CSV files up to 10MB</p>
+                        <div class="flex items-center justify-center text-sm text-gray-400 mt-4">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <span>Supports CSV files up to 10MB</span>
+                        </div>
                         <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="handleFileUpload(event)">
                     </div>
                     
-                    <button id="analyzeBtn" class="hidden mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200" onclick="startAnalysis()">
-                        🚀 Start AI Analysis
+                    <div class="text-center mt-6">
+                        <button id="chooseFileBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition duration-200" onclick="document.getElementById('csvFile').click()">
+                            Choose File
+                        </button>
+                    </div>
+                    
+                    <button id="analyzeBtn" class="hidden mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition duration-200" onclick="startAnalysis()">
+                        Start AI Analysis
                     </button>
                 </div>
             </div>
 
             <!-- Analysis Section -->
             <div id="analysis-section" class="hidden">
-                <div class="text-center mb-8">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-4">🧠 AI Data Analysis</h2>
-                    <div id="analysis-spinner" class="text-blue-600">
-                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                        <p>Agent 1 is analyzing your data...</p>
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-cogs text-blue-600 mr-3"></i>
+                                <h2 class="text-2xl font-bold text-gray-900">Analysis Complete</h2>
+                            </div>
+                        </div>
+                        <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="showUpload()">
+                            Back
+                        </button>
+                    </div>
+                    
+                    <div id="analysis-spinner" class="text-center py-12">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                            <i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+                        </div>
+                        <p class="text-lg text-gray-700 mb-2">Analyzing your data...</p>
+                        <p class="text-sm text-gray-500">This may take a few moments</p>
                     </div>
                 </div>
                 
-                <div id="analysis-results" class="hidden grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    <div class="bg-white rounded-xl p-6 shadow-lg border-l-4 border-blue-500">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <span class="mr-2">📊</span> Data Structure
-                        </h3>
-                        <div id="data-metrics" class="space-y-4">
-                            <!-- Data metrics will be populated here -->
+                <div id="analysis-results" class="hidden">
+                    <!-- Analysis Summary Cards -->
+                    <div class="grid grid-cols-3 gap-6 mb-8">
+                        <div class="bg-white rounded-lg p-6 shadow-sm border">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-lg font-semibold text-gray-900" id="rows-count">12500</h3>
+                                <i class="fas fa-table text-blue-600"></i>
+                            </div>
+                            <p class="text-sm text-gray-600">Rows</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg p-6 shadow-sm border">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-lg font-semibold text-gray-900" id="columns-count">15</h3>
+                                <i class="fas fa-columns text-green-600"></i>
+                            </div>
+                            <p class="text-sm text-gray-600">Columns</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg p-6 shadow-sm border">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-lg font-semibold text-gray-900" id="domain-type">Restaurant</h3>
+                                <i class="fas fa-business-time text-purple-600"></i>
+                            </div>
+                            <p class="text-sm text-gray-600">Domain</p>
                         </div>
                     </div>
                     
-                    <div class="bg-white rounded-xl p-6 shadow-lg border-l-4 border-purple-500">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <span class="mr-2">🏢</span> Business Domain
-                        </h3>
-                        <div id="domain-info" class="space-y-4">
-                            <!-- Domain info will be populated here -->
-                        </div>
+                    <div class="text-center">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">Choose Your Next Action</h3>
+                        <p class="text-gray-600 mb-8">Select how you'd like to explore and analyze your data</p>
+                        <button id="continueToPlanning" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition duration-200" onclick="showPlanning()">
+                            Continue
+                        </button>
                     </div>
-                </div>
-                
-                <div class="text-center">
-                    <button id="continueToPlanning" class="hidden bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg transition duration-200" onclick="showPlanning()">
-                        ➡️ Continue to Task Planning
-                    </button>
                 </div>
             </div>
 
             <!-- Planning Section -->
             <div id="planning-section" class="hidden">
-                <div class="text-center mb-8">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-4">🎯 Choose Your Task</h2>
-                    <p class="text-lg text-gray-600">Based on your data analysis, here are the available tasks:</p>
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900 mb-2">Choose Your Next Action</h2>
+                            <p class="text-gray-600">Select how you'd like to explore and analyze your data</p>
+                        </div>
+                        <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="showAnalysis()">
+                            Back
+                        </button>
+                    </div>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    <div class="bg-white rounded-2xl p-8 shadow-lg card-hover border-2 border-transparent hover:border-blue-200 transition-all duration-200">
-                        <div class="text-center">
-                            <div class="text-5xl mb-4">💬</div>
-                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Chat with Data</h3>
-                            <p class="text-gray-600 mb-6">Ask questions about your business data and get AI-powered insights</p>
-                            <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200" onclick="startChat()">
-                                💬 Start Chat
-                            </button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white rounded-xl p-8 shadow-sm border hover:shadow-md transition-all duration-200 cursor-pointer" onclick="startChat()">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-comments text-xl text-blue-600"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-xl font-bold text-gray-900 mb-2">Chat with Your Data</h3>
+                                <p class="text-gray-600 mb-4">Ask questions and get business insights from your dataset using AI</p>
+                                <ul class="text-sm text-gray-500 space-y-1 mb-6">
+                                    <li>• Natural language queries</li>
+                                    <li>• Business intelligence insights</li>
+                                    <li>• Data pattern analysis</li>
+                                    <li>• Contextual Q&A</li>
+                                </ul>
+                                <button class="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center">
+                                    Get Started <i class="fas fa-arrow-right ml-2"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="bg-white rounded-2xl p-8 shadow-lg card-hover border-2 border-transparent hover:border-blue-200 transition-all duration-200">
-                        <div class="text-center">
-                            <div class="text-5xl mb-4">📈</div>
-                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Create Visualizations</h3>
-                            <p class="text-gray-600 mb-6">Generate domain-specific charts and interactive dashboards</p>
-                            <button class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200" onclick="startVisualization()">
-                                📈 Create Dashboard
-                            </button>
+                    <div class="bg-white rounded-xl p-8 shadow-sm border hover:shadow-md transition-all duration-200 cursor-pointer" onclick="startVisualization()">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-chart-line text-xl text-green-600"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-xl font-bold text-gray-900 mb-2">Create Visualizations</h3>
+                                <p class="text-gray-600 mb-4">Generate domain-specific charts and interactive dashboards</p>
+                                <ul class="text-sm text-gray-500 space-y-1 mb-6">
+                                    <li>• Smart chart suggestions</li>
+                                    <li>• Interactive dashboards</li>
+                                    <li>• Domain-specific visualizations</li>
+                                    <li>• Export capabilities</li>
+                                </ul>
+                                <button class="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center">
+                                    Get Started <i class="fas fa-arrow-right ml-2"></i>
+                                </button>
+                            </div>
                         </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 text-center">
+                    <div class="inline-flex items-center text-sm text-gray-500">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        <span>AI analysis complete!</span>
                     </div>
                 </div>
             </div>
@@ -240,47 +380,100 @@
 
             <!-- Visualization Section -->
             <div id="visualization-section" class="hidden">
-                <div class="text-center mb-8">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-4">📈 Create Visualizations</h2>
-                    <button class="text-blue-600 hover:text-blue-800" onclick="showPlanning()">
-                        ⬅️ Back to Task Selection
-                    </button>
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900 mb-2">Choose Your Visualizations</h2>
+                            <p class="text-gray-600">Based on your restaurant data, here are the most relevant chart types for your analysis</p>
+                        </div>
+                        <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="showPlanning()">
+                            Back
+                        </button>
+                    </div>
+                    
+                    <!-- Chart Selection Header -->
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center space-x-4">
+                            <span class="text-sm text-blue-600 font-medium" id="selected-count">3 Recommended</span>
+                            <span class="text-sm text-gray-400" id="total-selected">0 Selected</span>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <button class="flex items-center text-gray-600 hover:text-gray-800 text-sm">
+                                <i class="fas fa-magic mr-2"></i>
+                                AI Suggestions
+                            </button>
+                            <button class="flex items-center text-gray-600 hover:text-gray-800 text-sm">
+                                <i class="fas fa-plus mr-2"></i>
+                                Custom Chart
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Loading Suggestions -->
-                <div id="viz-loading" class="text-center py-8">
-                    <i class="fas fa-spinner fa-spin text-2xl text-blue-600 mb-4"></i>
-                    <p class="text-lg text-gray-600">Agent 2 is generating visualization suggestions...</p>
+                <div id="viz-loading" class="text-center py-12">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                        <i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+                    </div>
+                    <p class="text-lg text-gray-700 mb-2">Generating visualization suggestions...</p>
+                    <p class="text-sm text-gray-500">This may take a few moments</p>
                 </div>
                 
                 <!-- Visualization Suggestions -->
                 <div id="viz-suggestions" class="hidden">
-                    <div class="mb-8">
-                        <h3 class="text-2xl font-bold text-gray-800 mb-2">🎨 Suggested Visualizations</h3>
-                        <p class="text-gray-600">Based on your <span id="domain-type" class="font-semibold text-blue-600"></span> domain analysis:</p>
-                    </div>
-                    
-                    <div id="chart-suggestions" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div id="chart-suggestions" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                         <!-- Chart suggestions will be populated here -->
                     </div>
                     
-                    <div class="text-center mb-8">
-                        <p id="selected-count" class="text-sm text-gray-600 mb-4"></p>
-                        <button id="generateDashboard" class="hidden bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg transition duration-200" onclick="generateDashboard()">
-                            🚀 Generate Interactive Dashboard
+                    <div class="text-center">
+                        <button id="generateDashboard" class="hidden bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition duration-200" onclick="generateDashboard()">
+                            Generate Dashboard
                         </button>
                     </div>
                 </div>
                 
                 <!-- Dashboard -->
                 <div id="dashboard" class="hidden">
-                    <div class="text-center mb-8">
-                        <h3 class="text-3xl font-bold text-gray-800 mb-2">📊 Your Interactive Dashboard</h3>
-                        <p class="text-gray-600">AI-generated visualizations based on your data analysis</p>
+                    <div class="mb-8">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-900 mb-2">Your Analytics Dashboard</h2>
+                                <p class="text-gray-600">Interactive visualizations based on your restaurant data</p>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <span class="text-sm text-gray-500" id="dashboard-info">12500 rows processed</span>
+                                <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    <i class="fas fa-redo mr-2"></i>
+                                    Refresh
+                                </button>
+                                <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    <i class="fas fa-download mr-2"></i>
+                                    Export
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Key Insights -->
+                        <div class="bg-blue-50 rounded-lg p-6 mb-8">
+                            <div class="flex items-center mb-4">
+                                <i class="fas fa-lightbulb text-blue-600 mr-3"></i>
+                                <h3 class="text-lg font-bold text-gray-900">Key Insights</h3>
+                            </div>
+                            <div id="key-insights" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <!-- Key insights will be populated here -->
+                            </div>
+                        </div>
                     </div>
                     
-                    <div id="dashboard-charts" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div id="dashboard-charts" class="space-y-8">
                         <!-- Charts will be populated here -->
+                    </div>
+                    
+                    <div class="mt-8 text-center">
+                        <div class="inline-flex items-center text-sm text-gray-500">
+                            <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                            <span id="generated-count">Generated 1 visualizations!</span>
+                        </div>
                     </div>
                 </div>
                 
@@ -296,19 +489,15 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Reset Button -->
+            <div class="text-center mt-12 py-8 border-t">
+                <button id="resetBtn" class="text-gray-400 hover:text-gray-600 text-sm font-medium" onclick="resetApp()">
+                    <i class="fas fa-redo mr-2"></i>
+                    Reset and Start Over
+                </button>
+            </div>
         </div>
-    </div>
-
-    <!-- Sidebar -->
-    <div class="fixed right-4 top-4 w-80 bg-white rounded-lg shadow-lg p-6" id="sidebar">
-        <h4 class="font-bold text-gray-800 mb-4">🧠 Session Memory</h4>
-        <div id="session-info" class="space-y-2 text-sm text-gray-600">
-            <div>Status: <span id="session-status">Ready</span></div>
-            <div>Interactions: <span id="interaction-count">0</span></div>
-        </div>
-        <button onclick="resetSession()" class="mt-4 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-200">
-            🔄 Start Over
-        </button>
     </div>
 
     <script src="app.js"></script>
