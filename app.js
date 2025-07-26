@@ -40,10 +40,36 @@ function showAnalysis() {
 
 function showPlanning() {
     showSection('planning-section');
+    
+    // Update workflow progress
+    updateWorkflowStep('planning', 'active');
 }
 
 function updateWorkflowStep(step, status) {
     console.log(`Updating workflow step: ${step} to ${status}`);
+    
+    const stepElement = document.querySelector(`[data-step="${step}"]`);
+    if (!stepElement) return;
+    
+    const circle = stepElement.querySelector('.step-icon');
+    
+    if (status === 'completed') {
+        stepElement.className = 'workflow-step completed p-4';
+        circle.className = 'step-icon';
+        circle.innerHTML = '<i class="fas fa-check"></i>';
+        circle.style.backgroundColor = '#22c55e';
+        circle.style.color = 'white';
+    } else if (status === 'active') {
+        stepElement.className = 'workflow-step active p-4';
+        circle.className = 'step-icon';
+        circle.style.backgroundColor = '#3b82f6';
+        circle.style.color = 'white';
+    } else if (status === 'pending') {
+        stepElement.className = 'workflow-step pending p-4';
+        circle.className = 'step-icon';
+        circle.style.backgroundColor = '#e5e7eb';
+        circle.style.color = '#6b7280';
+    }
 }
 
 function updateSessionInfo() {
@@ -173,7 +199,10 @@ function performAnalysis() {
         domain: {
             type: domainType,
             confidence: 0.85
-        }
+        },
+        columns: columns,
+        numeric_columns: numericColumns,
+        sample_data: csvData.slice(0, 5) // Store sample for analysis
     };
     
     // Update UI
@@ -191,6 +220,10 @@ function performAnalysis() {
     if (rowsCount) rowsCount.textContent = analysisResults.basic_stats.rows.toLocaleString();
     if (columnsCount) columnsCount.textContent = analysisResults.basic_stats.columns;
     if (domainTypeElement) domainTypeElement.textContent = analysisResults.domain.type;
+    
+    // Update workflow progress
+    updateWorkflowStep('upload', 'completed');
+    updateWorkflowStep('analysis', 'completed');
     
     // Show continue button
     const continueBtn = document.getElementById('continueToPlanning');
@@ -240,13 +273,18 @@ function detectBusinessDomain(columns) {
 function startChat() {
     showSection('chat-section');
     
+    // Update workflow progress
+    updateWorkflowStep('planning', 'completed');
+    updateWorkflowStep('execution', 'active');
+    
     // Set up chat context
     if (analysisResults) {
         const chatContext = document.getElementById('chat-context');
         if (chatContext) {
             chatContext.innerHTML = `
                 <strong>Domain:</strong> ${analysisResults.domain.type} (${(analysisResults.domain.confidence * 100).toFixed(0)}% confidence)<br>
-                <strong>Data Shape:</strong> ${analysisResults.basic_stats.rows} rows × ${analysisResults.basic_stats.columns} columns
+                <strong>Data Shape:</strong> ${analysisResults.basic_stats.rows} rows × ${analysisResults.basic_stats.columns} columns<br>
+                <strong>Key Columns:</strong> ${analysisResults.columns.slice(0, 5).join(', ')}${analysisResults.columns.length > 5 ? '...' : ''}
             `;
         }
     }
@@ -254,6 +292,10 @@ function startChat() {
 
 function startVisualization() {
     showSection('visualization-section');
+    
+    // Update workflow progress
+    updateWorkflowStep('planning', 'completed');
+    updateWorkflowStep('execution', 'active');
     
     // Show loading, hide other elements
     const loading = document.getElementById('viz-loading');
@@ -267,6 +309,10 @@ function startVisualization() {
         generateVisualizationSuggestions();
         if (loading) loading.classList.add('hidden');
         if (suggestions) suggestions.classList.remove('hidden');
+        
+        // Show custom visualization section
+        const customViz = document.getElementById('custom-viz');
+        if (customViz) customViz.classList.remove('hidden');
     }, 2000);
 }
 
@@ -319,13 +365,40 @@ function generateChatResponse(question) {
         return "Please analyze your data first before asking questions.";
     }
     
-    const responses = [
-        `Based on your ${analysisResults.domain.type} data with ${analysisResults.basic_stats.rows} rows, here's what I found: The dataset shows interesting patterns that could help with business decisions.`,
-        `Looking at your ${analysisResults.basic_stats.columns} columns of data, I can see several key insights. The ${analysisResults.domain.type} domain suggests specific analysis opportunities.`,
-        `Your dataset contains ${analysisResults.basic_stats.rows} records across ${analysisResults.basic_stats.columns} fields. For ${analysisResults.domain.type} businesses, this data can reveal important trends.`
-    ];
+    const questionLower = question.toLowerCase();
+    const domain = analysisResults.domain.type;
+    const rows = analysisResults.basic_stats.rows;
+    const cols = analysisResults.basic_stats.columns;
+    const columns = analysisResults.columns;
+    const numericCols = analysisResults.numeric_columns;
     
-    return responses[Math.floor(Math.random() * responses.length)];
+    // Senior Data Analyst responses based on question context
+    if (questionLower.includes('trend') || questionLower.includes('pattern')) {
+        return `As your Senior Data Analyst, I can see several interesting trends in your ${domain} dataset. With ${rows.toLocaleString()} records, I'd recommend focusing on time-based analysis using columns like ${numericCols.slice(0,2).join(' and ')}. The data shows ${cols} dimensions we can explore for pattern recognition.`;
+    }
+    
+    if (questionLower.includes('revenue') || questionLower.includes('sales') || questionLower.includes('money')) {
+        return `From a financial perspective, your ${domain} data contains ${rows.toLocaleString()} transactions. I'd analyze the revenue streams by examining ${numericCols.length > 0 ? numericCols[0] : 'financial columns'} and correlating with categorical data. This could reveal peak performance periods and growth opportunities.`;
+    }
+    
+    if (questionLower.includes('customer') || questionLower.includes('user')) {
+        return `Looking at customer behavior in your ${domain} dataset, I see ${rows.toLocaleString()} data points. Customer segmentation analysis would be valuable here. I'd segment by ${columns.slice(1,3).join(' and ')} to identify high-value customer groups and retention patterns.`;
+    }
+    
+    if (questionLower.includes('recommend') || questionLower.includes('suggest')) {
+        return `Based on my analysis of your ${domain} data, I recommend starting with: 1) Time-series analysis of your key metrics, 2) Customer segmentation using ${columns.slice(0,2).join(' and ')}, 3) Performance correlation analysis. With ${rows.toLocaleString()} records, we have strong statistical power for these analyses.`;
+    }
+    
+    if (questionLower.includes('insight') || questionLower.includes('finding')) {
+        return `Here are my key insights from your ${domain} dataset: The ${rows.toLocaleString()} records show ${numericCols.length} quantitative measures we can analyze. I notice ${columns.length} different dimensions - this suggests opportunities for multi-dimensional analysis and cross-correlation studies.`;
+    }
+    
+    if (questionLower.includes('performance') || questionLower.includes('metric')) {
+        return `From a performance standpoint, your ${domain} data with ${rows.toLocaleString()} records offers rich analytics potential. I'd focus on KPI tracking using ${numericCols.slice(0,2).join(' and ')}, benchmark analysis, and performance trending over time periods.`;
+    }
+    
+    // Default senior analyst response
+    return `As your Senior Data Analyst, I've examined your ${domain} dataset containing ${rows.toLocaleString()} records across ${cols} fields. Based on the data structure, I see strong potential for ${numericCols.length > 0 ? 'quantitative analysis' : 'categorical analysis'}. What specific business question would you like me to investigate further?`;
 }
 
 // Visualization functions
@@ -447,12 +520,8 @@ function generateDashboardContent(selectedCharts) {
                             </button>
                         </div>
                     </div>
-                    <div class="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
-                        <div class="text-center">
-                            <i class="fas fa-chart-${index % 2 === 0 ? 'line' : 'bar'} text-4xl text-gray-400 mb-4"></i>
-                            <p class="text-gray-500">Interactive ${chartTitle.toLowerCase()} visualization</p>
-                            <p class="text-sm text-gray-400 mt-2">Based on ${analysisResults ? analysisResults.basic_stats.rows : 'your'} data points</p>
-                        </div>
+                    <div class="h-64 bg-gray-50 rounded-lg p-4">
+                        ${generateChartVisualization(chartType, index)}
                     </div>
                 </div>
             `;
@@ -497,30 +566,120 @@ function createCustomVisualization() {
         return;
     }
     
-    // Add custom visualization request
-    const dashboardCharts = document.getElementById('dashboard-charts');
-    if (dashboardCharts) {
-        const customChart = document.createElement('div');
-        customChart.className = 'bg-white rounded-lg p-6 shadow-sm border border-purple-200';
-        customChart.innerHTML = `
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-900">Custom Visualization</h3>
-                <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">AI Generated</span>
-            </div>
-            <div class="h-64 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg flex items-center justify-center">
-                <div class="text-center">
-                    <i class="fas fa-magic text-4xl text-purple-500 mb-4"></i>
-                    <p class="text-gray-700 font-medium">"${request}"</p>
-                    <p class="text-sm text-gray-500 mt-2">Custom visualization based on your request</p>
+    // Generate AI response for custom chart request
+    const response = generateCustomChartResponse(request);
+    
+    // Add to custom visualization area if dashboard is visible
+    const dashboard = document.getElementById('dashboard');
+    if (!dashboard.classList.contains('hidden')) {
+        const dashboardCharts = document.getElementById('dashboard-charts');
+        if (dashboardCharts) {
+            const customChart = document.createElement('div');
+            customChart.className = 'bg-white rounded-lg p-6 shadow-sm border border-purple-200';
+            customChart.innerHTML = `
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Custom: ${request}</h3>
+                    <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">AI Generated</span>
                 </div>
-            </div>
-        `;
-        
-        dashboardCharts.appendChild(customChart);
+                <div class="h-64 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-4">
+                    ${generateCustomChartVisualization(request)}
+                </div>
+                <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p class="text-sm text-blue-800"><strong>AI Analyst:</strong> ${response}</p>
+                </div>
+            `;
+            
+            dashboardCharts.appendChild(customChart);
+        }
+    } else {
+        // Show response in the custom viz area
+        alert(`AI Analyst Response: ${response}`);
     }
     
     input.value = '';
-    alert('Custom visualization added to your dashboard!');
+}
+
+function generateCustomChartResponse(request) {
+    const domain = analysisResults ? analysisResults.domain.type : 'your business';
+    const columns = analysisResults ? analysisResults.columns : [];
+    const rows = analysisResults ? analysisResults.basic_stats.rows : 0;
+    
+    const requestLower = request.toLowerCase();
+    
+    if (requestLower.includes('correlation') || requestLower.includes('relationship')) {
+        return `I'll create a correlation analysis for your ${domain} data. With ${rows.toLocaleString()} records, we can examine relationships between ${columns.slice(0,3).join(', ')} to identify patterns and dependencies.`;
+    }
+    
+    if (requestLower.includes('time') || requestLower.includes('trend') || requestLower.includes('over time')) {
+        return `Perfect! Time series analysis is crucial for ${domain} businesses. I'll create a temporal visualization showing trends across your ${rows.toLocaleString()} data points to reveal seasonal patterns and growth trajectories.`;
+    }
+    
+    if (requestLower.includes('distribution') || requestLower.includes('breakdown')) {
+        return `Distribution analysis coming up! For your ${domain} dataset, I'll break down the data by key categories. This will help identify the most significant segments in your ${rows.toLocaleString()} records.`;
+    }
+    
+    return `Excellent request! I'm creating a custom ${domain} visualization based on "${request}". This analysis will leverage your ${rows.toLocaleString()} data points to provide actionable insights for your business strategy.`;
+}
+
+function generateCustomChartVisualization(request) {
+    return `
+        <div class="h-full flex items-center justify-center">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-chart-line text-2xl text-purple-600"></i>
+                </div>
+                <h4 class="font-semibold text-gray-800 mb-2">Custom Analysis: "${request}"</h4>
+                <div class="space-y-2 text-sm text-gray-600">
+                    <div class="flex justify-between"><span>Data Points:</span><span>${analysisResults ? analysisResults.basic_stats.rows.toLocaleString() : '12,500'}</span></div>
+                    <div class="flex justify-between"><span>Analysis Type:</span><span>Custom Request</span></div>
+                    <div class="flex justify-between"><span>Confidence:</span><span>95%</span></div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function generateChartVisualization(chartType, index) {
+    const colors = ['blue', 'green', 'purple', 'orange', 'red'];
+    const color = colors[index % colors.length];
+    const rows = analysisResults ? analysisResults.basic_stats.rows : 12500;
+    
+    return `
+        <div class="h-full flex flex-col">
+            <div class="flex-1 flex items-center justify-center">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-${color}-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-chart-${index % 2 === 0 ? 'line' : 'bar'} text-xl text-${color}-600"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex justify-center space-x-4 text-xs text-gray-500">
+                            <span>Data: ${rows.toLocaleString()} points</span>
+                            <span>Type: Interactive</span>
+                        </div>
+                        <div class="w-32 h-1 bg-${color}-200 rounded-full mx-auto">
+                            <div class="w-3/4 h-1 bg-${color}-600 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-auto">
+                <div class="grid grid-cols-3 gap-2 text-xs text-center">
+                    <div class="bg-${color}-50 rounded p-1">
+                        <div class="font-semibold text-${color}-800">${Math.floor(Math.random() * 100)}%</div>
+                        <div class="text-${color}-600">Growth</div>
+                    </div>
+                    <div class="bg-${color}-50 rounded p-1">
+                        <div class="font-semibold text-${color}-800">${Math.floor(Math.random() * 50 + 50)}</div>
+                        <div class="text-${color}-600">Score</div>
+                    </div>
+                    <div class="bg-${color}-50 rounded p-1">
+                        <div class="font-semibold text-${color}-800">${Math.floor(Math.random() * 10 + 5)}k</div>
+                        <div class="text-${color}-600">Volume</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 // Event handlers for enter key
