@@ -16,105 +16,56 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for modern design
+# Tailwind CSS and custom styles
 st.markdown("""
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 <style>
-    .main {
-        padding-top: 2rem;
-    }
-    
     .stApp > header {
         background-color: transparent;
     }
     
-    .workflow-container {
+    .gradient-bg {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
-        color: white;
     }
     
-    .workflow-step {
-        background: rgba(255, 255, 255, 0.1);
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-        border-left: 4px solid #4CAF50;
-    }
-    
-    .workflow-step.active {
-        background: rgba(255, 255, 255, 0.2);
-        border-left-color: #FFC107;
-    }
-    
-    .workflow-step.completed {
-        background: rgba(76, 175, 80, 0.2);
-        border-left-color: #4CAF50;
-    }
-    
-    .upload-area {
-        background: #f8f9fa;
-        border: 2px dashed #dee2e6;
-        border-radius: 15px;
-        padding: 3rem;
-        text-align: center;
-        margin: 2rem 0;
-    }
-    
-    .upload-area:hover {
-        border-color: #6c757d;
-        background: #e9ecef;
-    }
-    
-    .metric-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        border-left: 4px solid #667eea;
-        margin: 1rem 0;
-    }
-    
-    .task-card {
-        background: white;
-        padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        margin: 1rem;
-        transition: transform 0.2s;
-        cursor: pointer;
-        border: 2px solid transparent;
-    }
-    
-    .task-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-        border-color: #667eea;
-    }
-    
-    .header-container {
-        text-align: center;
-        margin-bottom: 3rem;
-    }
-    
-    .subtitle {
-        color: #6c757d;
-        font-size: 1.2rem;
-        margin-top: 0.5rem;
-    }
-    
-    .step-number {
+    .step-indicator {
+        width: 32px;
+        height: 32px;
         background: #667eea;
-        color: white;
         border-radius: 50%;
-        width: 30px;
-        height: 30px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        color: white;
         font-weight: bold;
-        margin-right: 10px;
+        margin-right: 12px;
+    }
+    
+    .step-completed {
+        background: #10b981;
+    }
+    
+    .step-active {
+        background: #f59e0b;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        transition: all 0.2s ease;
+    }
+    
+    .card-shadow {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    .card-shadow:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -138,11 +89,11 @@ if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
 def main():
-    # Header
+    # Header with Tailwind
     st.markdown("""
-    <div class="header-container">
-        <h1>📊 CSV to Dashboard AI</h1>
-        <p class="subtitle">Multi-Agent Data Analytics Platform</p>
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-800 mb-4">📊 CSV to Dashboard AI</h1>
+        <p class="text-xl text-gray-600">Multi-Agent Data Analytics Platform</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -187,8 +138,8 @@ def show_workflow_progress():
     ]
     
     st.markdown("""
-    <div class="workflow-container">
-        <h3>🧠 AI Agent Workflow</h3>
+    <div class="gradient-bg rounded-2xl p-8 mb-8 text-white">
+        <h3 class="text-2xl font-bold mb-6">🧠 AI Agent Workflow</h3>
     """, unsafe_allow_html=True)
     
     for i, step in enumerate(steps):
@@ -200,10 +151,26 @@ def show_workflow_progress():
         else:
             icon = "⏳"
             
+        step_class = ""
+        if status_class == "completed":
+            step_class = "bg-white bg-opacity-20 border-l-4 border-green-400"
+        elif status_class == "active":
+            step_class = "bg-white bg-opacity-30 border-l-4 border-yellow-400"
+        else:
+            step_class = "bg-white bg-opacity-10 border-l-4 border-gray-400"
+            
+        indicator_class = "step-indicator"
+        if status_class == "completed":
+            indicator_class += " step-completed"
+        elif status_class == "active":
+            indicator_class += " step-active"
+            
         st.markdown(f"""
-        <div class="workflow-step {status_class}">
-            <span class="step-number">{i+1}</span>
-            {icon} {step["name"]}
+        <div class="rounded-lg p-4 mb-3 {step_class}">
+            <div class="flex items-center">
+                <span class="{indicator_class}">{i+1}</span>
+                <span class="text-lg font-medium">{icon} {step["name"]}</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -211,9 +178,9 @@ def show_workflow_progress():
 
 def show_modern_upload_interface():
     st.markdown("""
-    <div style="text-align: center; margin: 2rem 0;">
-        <h2>🎯 Transform Your Data with AI</h2>
-        <p>Upload your CSV and let our AI agents create intelligent dashboards and insights in minutes</p>
+    <div class="text-center my-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-4">🎯 Transform Your Data with AI</h2>
+        <p class="text-lg text-gray-600">Upload your CSV and let our AI agents create intelligent dashboards and insights in minutes</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -222,10 +189,15 @@ def show_modern_upload_interface():
     
     with col2:
         st.markdown("""
-        <div class="upload-area">
-            <h3>📁 Upload Your CSV File</h3>
-            <p>Drag and drop your CSV file here, or click to browse</p>
-            <small>Supports CSV files up to 10MB</small>
+        <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center my-8 hover:border-gray-400 hover:bg-gray-100 transition-all duration-200">
+            <div class="mb-4">
+                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">📁 Upload Your CSV File</h3>
+            <p class="text-gray-500 mb-2">Drag and drop your CSV file here, or click to browse</p>
+            <p class="text-sm text-gray-400">Supports CSV files up to 10MB</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -270,24 +242,42 @@ def show_modern_analysis_interface(data_agent):
                 # Store in memory
                 st.session_state.memory.store_analysis(analysis)
                 
-                # Display results
-                col1, col2 = st.columns(2)
+                # Display results with Tailwind styling
+                col1, col2 = st.columns(2, gap="large")
                 
                 with col1:
-                    st.subheader("📊 Data Structure")
-                    st.write(f"**Rows:** {analysis['basic_stats']['rows']}")
-                    st.write(f"**Columns:** {analysis['basic_stats']['columns']}")
-                    st.write(f"**Numeric Columns:** {len(analysis['column_analysis']['numeric'])}")
-                    st.write(f"**Categorical Columns:** {len(analysis['column_analysis']['categorical'])}")
+                    st.markdown("""
+                    <div class="bg-white rounded-xl p-6 card-shadow border-l-4 border-blue-500">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <span class="mr-2">📊</span> Data Structure
+                        </h3>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.metric("Rows", f"{analysis['basic_stats']['rows']:,}")
+                    st.metric("Columns", analysis['basic_stats']['columns'])
+                    st.metric("Numeric Columns", len(analysis['column_analysis']['numeric']))
+                    st.metric("Categorical Columns", len(analysis['column_analysis']['categorical']))
                 
                 with col2:
-                    st.subheader("🏢 Business Domain")
-                    st.write(f"**Detected Domain:** {analysis['domain']['type']}")
-                    st.write(f"**Confidence:** {analysis['domain']['confidence']:.2f}")
+                    st.markdown("""
+                    <div class="bg-white rounded-xl p-6 card-shadow border-l-4 border-purple-500">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <span class="mr-2">🏢</span> Business Domain
+                        </h3>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    domain_type = analysis['domain']['type'].title()
+                    confidence = analysis['domain']['confidence']
+                    
+                    st.metric("Detected Domain", domain_type)
+                    st.metric("Confidence", f"{confidence:.2%}")
+                    
                     if analysis['domain']['indicators']:
-                        st.write("**Key Indicators:**")
+                        st.markdown("**Key Indicators:**")
                         for indicator in analysis['domain']['indicators'][:3]:
-                            st.write(f"• {indicator}")
+                            st.markdown(f"• {indicator}")
                 
                 st.subheader("🔍 Column Analysis")
                 for col_type, columns in analysis['column_analysis'].items():
@@ -310,23 +300,45 @@ def show_modern_planning_interface(planner_agent):
         # Get available tasks from planner
         tasks = planner_agent.get_available_tasks(st.session_state.analysis_results)
         
-        st.write("Based on your data analysis, here are the available tasks:")
+        st.markdown("""
+        <div class="mb-8">
+            <p class="text-lg text-gray-600 text-center">Based on your data analysis, here are the available tasks:</p>
+        </div>
+        """, unsafe_allow_html=True)
         
-        col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2, gap="large")
         
         with col1:
-            if st.button("💬 Chat with Data", use_container_width=True):
+            st.markdown("""
+            <div class="bg-white rounded-2xl p-8 card-shadow hover-lift border-2 border-transparent hover:border-blue-200 transition-all duration-200 mb-4">
+                <div class="text-center">
+                    <div class="text-4xl mb-4">💬</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Chat with Data</h3>
+                    <p class="text-gray-600 mb-6">Ask questions about your business data and get AI-powered insights</p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("💬 Start Chat", use_container_width=True, type="primary"):
                 st.session_state.selected_task = 'chat'
                 st.session_state.current_step = 'execution'
                 st.rerun()
-            st.write("Ask questions about your business data and get AI-powered insights")
         
         with col2:
-            if st.button("📈 Create Visualizations", use_container_width=True):
+            st.markdown("""
+            <div class="bg-white rounded-2xl p-8 card-shadow hover-lift border-2 border-transparent hover:border-blue-200 transition-all duration-200 mb-4">
+                <div class="text-center">
+                    <div class="text-4xl mb-4">📈</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Create Visualizations</h3>
+                    <p class="text-gray-600 mb-6">Generate domain-specific charts and interactive dashboards</p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("📈 Create Dashboard", use_container_width=True, type="primary"):
                 st.session_state.selected_task = 'visualize'
                 st.session_state.current_step = 'execution'
                 st.rerun()
-            st.write("Generate domain-specific charts and interactive dashboards")
         
         # Show task recommendations
         st.subheader("🤖 AI Recommendations")
@@ -407,28 +419,62 @@ def show_modern_visualization_interface(viz_agent, executor_agent):
                 st.error(f"❌ Error generating suggestions: {str(e)}")
                 return
     
-    # Display suggestions
+    # Display suggestions with Tailwind
     if st.session_state.visualization_suggestions:
-        st.subheader("🎨 Suggested Visualizations")
-        st.write(f"Based on your {st.session_state.analysis_results['domain']['type']} domain:")
+        domain_type = st.session_state.analysis_results['domain']['type'].title()
         
-        # Chart selection
+        st.markdown(f"""
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">🎨 Suggested Visualizations</h2>
+            <p class="text-gray-600">Based on your <span class="font-semibold text-blue-600">{domain_type}</span> domain analysis:</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Chart selection with Tailwind cards
         suggestions = st.session_state.visualization_suggestions
-        
         selected_charts = []
-        for i, suggestion in enumerate(suggestions):
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.write(f"**{suggestion['title']}**")
-                st.write(f"*{suggestion['description']}*")
-                st.write(f"📊 Type: {suggestion['chart_type']}")
-            
-            with col2:
-                if st.checkbox(f"Select", key=f"chart_{i}"):
-                    selected_charts.append(suggestion)
         
-        # Generate dashboard
-        if selected_charts and st.button("🚀 Generate Dashboard", type="primary"):
+        for i, suggestion in enumerate(suggestions):
+            cols = st.columns([1, 10, 1])
+            with cols[1]:
+                chart_selected = st.checkbox(
+                    f"Select {suggestion['title']}",
+                    key=f"chart_{i}",
+                    label_visibility="collapsed"
+                )
+                
+                if chart_selected:
+                    selected_charts.append(suggestion)
+                
+                # Card styling based on selection
+                border_class = "border-blue-400 bg-blue-50" if chart_selected else "border-gray-200 hover:border-blue-300"
+                
+                st.markdown(f"""
+                <div class="bg-white rounded-xl p-6 card-shadow border-2 {border_class} mb-4 transition-all duration-200">
+                    <div class="flex items-start justify-between mb-3">
+                        <h3 class="text-lg font-bold text-gray-800">{suggestion['title']}</h3>
+                        <span class="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-medium px-3 py-1 rounded-full">
+                            {suggestion['chart_type'].title()}
+                        </span>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-3">{suggestion['description']}</p>
+                    <div class="text-xs text-gray-500">
+                        <strong>Business Value:</strong> {suggestion.get('domain_value', 'Provides valuable business insights')}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # Generate dashboard with enhanced button
+        if selected_charts:
+            st.markdown("""
+            <div class="text-center my-8">
+                <p class="text-sm text-gray-600 mb-4">
+                    ✅ {count} visualization{plural} selected
+                </p>
+            </div>
+            """.format(count=len(selected_charts), plural="s" if len(selected_charts) > 1 else ""), unsafe_allow_html=True)
+            
+        if selected_charts and st.button("🚀 Generate Interactive Dashboard", type="primary", use_container_width=True):
             st.session_state.selected_charts = selected_charts
             
             with st.spinner("🎨 Creating your dashboard..."):
@@ -439,8 +485,13 @@ def show_modern_visualization_interface(viz_agent, executor_agent):
                         selected_charts
                     )
                     
-                    # Display dashboard
-                    st.subheader("📊 Your Interactive Dashboard")
+                    # Display dashboard with Tailwind header
+                    st.markdown("""
+                    <div class="text-center my-8">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2">📊 Your Interactive Dashboard</h2>
+                        <p class="text-gray-600">AI-generated visualizations based on your data analysis</p>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
                     # Arrange charts in grid
                     for i in range(0, len(charts), 2):
