@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV to Dashboard AI - Multi-Agent Data Analytics Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .step-indicator {
+            width: 32px;
+            height: 32px;
+            background: #667eea;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+        
+        .step-completed {
+            background: #10b981;
+        }
+        
+        .step-active {
+            background: #f59e0b;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            transition: all 0.2s ease;
+        }
+        
+        .upload-area {
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: #6366f1;
+            background-color: #f8fafc;
+        }
+        
+        .chart-card {
+            transition: all 0.2s ease;
+        }
+        
+        .chart-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chart-card.selected {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <div class="text-center py-12">
+        <h1 class="text-5xl font-bold text-gray-800 mb-4">📊 CSV to Dashboard AI</h1>
+        <p class="text-xl text-gray-600">Multi-Agent Data Analytics Platform</p>
+    </div>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Workflow Progress -->
+        <div class="gradient-bg rounded-2xl p-8 mb-8 text-white">
+            <h3 class="text-2xl font-bold mb-6">🧠 AI Agent Workflow</h3>
+            <div id="workflow-steps" class="space-y-3">
+                <div class="workflow-step" data-step="upload">
+                    <div class="flex items-center rounded-lg p-4 bg-white bg-opacity-20 border-l-4 border-green-400">
+                        <span class="step-indicator step-completed">1</span>
+                        <span class="text-lg font-medium">📁 Data Upload</span>
+                    </div>
+                </div>
+                <div class="workflow-step" data-step="analysis">
+                    <div class="flex items-center rounded-lg p-4 bg-white bg-opacity-10 border-l-4 border-gray-400">
+                        <span class="step-indicator">2</span>
+                        <span class="text-lg font-medium">⏳ Data Intelligence Analysis</span>
+                    </div>
+                </div>
+                <div class="workflow-step" data-step="planning">
+                    <div class="flex items-center rounded-lg p-4 bg-white bg-opacity-10 border-l-4 border-gray-400">
+                        <span class="step-indicator">3</span>
+                        <span class="text-lg font-medium">⏳ Task Planning</span>
+                    </div>
+                </div>
+                <div class="workflow-step" data-step="execution">
+                    <div class="flex items-center rounded-lg p-4 bg-white bg-opacity-10 border-l-4 border-gray-400">
+                        <span class="step-indicator">4</span>
+                        <span class="text-lg font-medium">⏳ Task Execution</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div id="main-content">
+            <!-- Upload Section -->
+            <div id="upload-section" class="text-center">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">🎯 Transform Your Data with AI</h2>
+                    <p class="text-lg text-gray-600">Upload your CSV and let our AI agents create intelligent dashboards and insights in minutes</p>
+                </div>
+                
+                <div class="max-w-2xl mx-auto">
+                    <div class="upload-area bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center cursor-pointer" onclick="document.getElementById('csvFile').click()">
+                        <div class="mb-4">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-700 mb-2">📁 Upload Your CSV File</h3>
+                        <p class="text-gray-500 mb-2">Drag and drop your CSV file here, or click to browse</p>
+                        <p class="text-sm text-gray-400">Supports CSV files up to 10MB</p>
+                        <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="handleFileUpload(event)">
+                    </div>
+                    
+                    <button id="analyzeBtn" class="hidden mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200" onclick="startAnalysis()">
+                        🚀 Start AI Analysis
+                    </button>
+                </div>
+            </div>
+
+            <!-- Analysis Section -->
+            <div id="analysis-section" class="hidden">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">🧠 AI Data Analysis</h2>
+                    <div id="analysis-spinner" class="text-blue-600">
+                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                        <p>Agent 1 is analyzing your data...</p>
+                    </div>
+                </div>
+                
+                <div id="analysis-results" class="hidden grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <div class="bg-white rounded-xl p-6 shadow-lg border-l-4 border-blue-500">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <span class="mr-2">📊</span> Data Structure
+                        </h3>
+                        <div id="data-metrics" class="space-y-4">
+                            <!-- Data metrics will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl p-6 shadow-lg border-l-4 border-purple-500">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <span class="mr-2">🏢</span> Business Domain
+                        </h3>
+                        <div id="domain-info" class="space-y-4">
+                            <!-- Domain info will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <button id="continueToPlanning" class="hidden bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg transition duration-200" onclick="showPlanning()">
+                        ➡️ Continue to Task Planning
+                    </button>
+                </div>
+            </div>
+
+            <!-- Planning Section -->
+            <div id="planning-section" class="hidden">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">🎯 Choose Your Task</h2>
+                    <p class="text-lg text-gray-600">Based on your data analysis, here are the available tasks:</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <div class="bg-white rounded-2xl p-8 shadow-lg card-hover border-2 border-transparent hover:border-blue-200 transition-all duration-200">
+                        <div class="text-center">
+                            <div class="text-5xl mb-4">💬</div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Chat with Data</h3>
+                            <p class="text-gray-600 mb-6">Ask questions about your business data and get AI-powered insights</p>
+                            <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200" onclick="startChat()">
+                                💬 Start Chat
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl p-8 shadow-lg card-hover border-2 border-transparent hover:border-blue-200 transition-all duration-200">
+                        <div class="text-center">
+                            <div class="text-5xl mb-4">📈</div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Create Visualizations</h3>
+                            <p class="text-gray-600 mb-6">Generate domain-specific charts and interactive dashboards</p>
+                            <button class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200" onclick="startVisualization()">
+                                📈 Create Dashboard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Section -->
+            <div id="chat-section" class="hidden">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">💬 Chat with Your Data</h2>
+                    <button class="text-blue-600 hover:text-blue-800" onclick="showPlanning()">
+                        ⬅️ Back to Task Selection
+                    </button>
+                </div>
+                
+                <div class="max-w-4xl mx-auto">
+                    <!-- Data Context -->
+                    <div class="bg-blue-50 rounded-lg p-4 mb-6">
+                        <h4 class="font-semibold text-blue-800 mb-2">📊 Data Context</h4>
+                        <div id="chat-context" class="text-sm text-blue-700">
+                            <!-- Context will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Chat History -->
+                    <div id="chat-history" class="bg-white rounded-lg shadow-lg p-6 mb-6 min-h-64 max-h-96 overflow-y-auto">
+                        <div class="text-center text-gray-500">
+                            Ask your first question about the data...
+                        </div>
+                    </div>
+                    
+                    <!-- Chat Input -->
+                    <div class="flex space-x-4">
+                        <input type="text" id="chatInput" placeholder="e.g., What are the key trends in my data?" class="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button onclick="sendChatMessage()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                            🔍 Ask Question
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualization Section -->
+            <div id="visualization-section" class="hidden">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">📈 Create Visualizations</h2>
+                    <button class="text-blue-600 hover:text-blue-800" onclick="showPlanning()">
+                        ⬅️ Back to Task Selection
+                    </button>
+                </div>
+                
+                <!-- Loading Suggestions -->
+                <div id="viz-loading" class="text-center py-8">
+                    <i class="fas fa-spinner fa-spin text-2xl text-blue-600 mb-4"></i>
+                    <p class="text-lg text-gray-600">Agent 2 is generating visualization suggestions...</p>
+                </div>
+                
+                <!-- Visualization Suggestions -->
+                <div id="viz-suggestions" class="hidden">
+                    <div class="mb-8">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">🎨 Suggested Visualizations</h3>
+                        <p class="text-gray-600">Based on your <span id="domain-type" class="font-semibold text-blue-600"></span> domain analysis:</p>
+                    </div>
+                    
+                    <div id="chart-suggestions" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <!-- Chart suggestions will be populated here -->
+                    </div>
+                    
+                    <div class="text-center mb-8">
+                        <p id="selected-count" class="text-sm text-gray-600 mb-4"></p>
+                        <button id="generateDashboard" class="hidden bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg transition duration-200" onclick="generateDashboard()">
+                            🚀 Generate Interactive Dashboard
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Dashboard -->
+                <div id="dashboard" class="hidden">
+                    <div class="text-center mb-8">
+                        <h3 class="text-3xl font-bold text-gray-800 mb-2">📊 Your Interactive Dashboard</h3>
+                        <p class="text-gray-600">AI-generated visualizations based on your data analysis</p>
+                    </div>
+                    
+                    <div id="dashboard-charts" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Charts will be populated here -->
+                    </div>
+                </div>
+                
+                <!-- Custom Visualization Request -->
+                <div id="custom-viz" class="hidden mt-8 border-t pt-8">
+                    <h4 class="text-xl font-bold text-gray-800 mb-4">💬 Request Additional Visualizations</h4>
+                    <p class="text-gray-600 mb-4">Describe what you'd like to visualize:</p>
+                    <div class="flex space-x-4">
+                        <input type="text" id="customVizInput" placeholder="e.g., Show me sales trends by region over time" class="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button onclick="createCustomVisualization()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                            🎯 Create Custom Visualization
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="fixed right-4 top-4 w-80 bg-white rounded-lg shadow-lg p-6" id="sidebar">
+        <h4 class="font-bold text-gray-800 mb-4">🧠 Session Memory</h4>
+        <div id="session-info" class="space-y-2 text-sm text-gray-600">
+            <div>Status: <span id="session-status">Ready</span></div>
+            <div>Interactions: <span id="interaction-count">0</span></div>
+        </div>
+        <button onclick="resetSession()" class="mt-4 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-200">
+            🔄 Start Over
+        </button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
