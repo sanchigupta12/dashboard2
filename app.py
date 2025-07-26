@@ -12,8 +12,112 @@ from utils.csv_processor import CSVProcessor
 st.set_page_config(
     page_title="CSV to Dashboard AI",
     page_icon="📊",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
+
+# Custom CSS for modern design
+st.markdown("""
+<style>
+    .main {
+        padding-top: 2rem;
+    }
+    
+    .stApp > header {
+        background-color: transparent;
+    }
+    
+    .workflow-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        color: white;
+    }
+    
+    .workflow-step {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 0.5rem 0;
+        border-left: 4px solid #4CAF50;
+    }
+    
+    .workflow-step.active {
+        background: rgba(255, 255, 255, 0.2);
+        border-left-color: #FFC107;
+    }
+    
+    .workflow-step.completed {
+        background: rgba(76, 175, 80, 0.2);
+        border-left-color: #4CAF50;
+    }
+    
+    .upload-area {
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 15px;
+        padding: 3rem;
+        text-align: center;
+        margin: 2rem 0;
+    }
+    
+    .upload-area:hover {
+        border-color: #6c757d;
+        background: #e9ecef;
+    }
+    
+    .metric-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #667eea;
+        margin: 1rem 0;
+    }
+    
+    .task-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin: 1rem;
+        transition: transform 0.2s;
+        cursor: pointer;
+        border: 2px solid transparent;
+    }
+    
+    .task-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        border-color: #667eea;
+    }
+    
+    .header-container {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+    
+    .subtitle {
+        color: #6c757d;
+        font-size: 1.2rem;
+        margin-top: 0.5rem;
+    }
+    
+    .step-number {
+        background: #667eea;
+        color: white;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 10px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # Initialize session state
 if 'memory' not in st.session_state:
@@ -34,11 +138,16 @@ if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
 def main():
-    st.title("🤖 CSV to Dashboard AI")
-    st.markdown("Transform your CSV files into intelligent dashboards through AI-powered analysis")
+    # Header
+    st.markdown("""
+    <div class="header-container">
+        <h1>📊 CSV to Dashboard AI</h1>
+        <p class="subtitle">Multi-Agent Data Analytics Platform</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Check for API key
-    api_key = os.getenv("GEMINI_API_KEY", "AIzaSyD7NhpHFsCS9hCGOV5ZZ7jhxzFlqDzp9uM")
+    api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         st.error("❌ Gemini API key not found. Please set the GEMINI_API_KEY environment variable.")
         return
@@ -49,61 +158,106 @@ def main():
     viz_agent = VisualizationAgent(api_key)
     executor_agent = ExecutorAgent(api_key)
     
-    # Step 1: CSV Upload
+    # Show workflow progress
+    show_workflow_progress()
+    
+    # Main content area
     if st.session_state.current_step == 'upload':
-        show_upload_interface()
-    
-    # Step 2: Data Analysis
+        show_modern_upload_interface()
     elif st.session_state.current_step == 'analysis':
-        show_analysis_interface(data_agent)
-    
-    # Step 3: Task Planning
+        show_modern_analysis_interface(data_agent)
     elif st.session_state.current_step == 'planning':
-        show_planning_interface(planner_agent)
-    
-    # Step 4: Task Execution
+        show_modern_planning_interface(planner_agent)
     elif st.session_state.current_step == 'execution':
         if st.session_state.selected_task == 'chat':
-            show_chat_interface(executor_agent)
+            show_modern_chat_interface(executor_agent)
         elif st.session_state.selected_task == 'visualize':
-            show_visualization_interface(viz_agent, executor_agent)
+            show_modern_visualization_interface(viz_agent, executor_agent)
     
-    # Sidebar - Memory and Context
-    show_memory_sidebar()
+    # Sidebar
+    show_modern_sidebar()
 
-def show_upload_interface():
-    st.header("📁 Step 1: Upload Your CSV File")
+def show_workflow_progress():
+    """Display modern workflow progress"""
+    steps = [
+        {"name": "Data Upload", "status": "completed" if st.session_state.csv_data is not None else ("active" if st.session_state.current_step == 'upload' else "pending")},
+        {"name": "Data Intelligence Analysis", "status": "completed" if st.session_state.analysis_results is not None else ("active" if st.session_state.current_step == 'analysis' else "pending")},
+        {"name": "Task Planning", "status": "completed" if st.session_state.selected_task is not None else ("active" if st.session_state.current_step == 'planning' else "pending")},
+        {"name": "Task Execution", "status": "active" if st.session_state.current_step == 'execution' else "pending"}
+    ]
     
-    # File uploader
-    uploaded_file = st.file_uploader(
-        "Choose a CSV file",
-        type=['csv'],
-        help="Upload your CSV file to begin the analysis"
-    )
+    st.markdown("""
+    <div class="workflow-container">
+        <h3>🧠 AI Agent Workflow</h3>
+    """, unsafe_allow_html=True)
     
-    if uploaded_file is not None:
-        try:
-            # Process CSV
-            processor = CSVProcessor()
-            df = processor.load_csv(uploaded_file)
+    for i, step in enumerate(steps):
+        status_class = step["status"]
+        if status_class == "completed":
+            icon = "✅"
+        elif status_class == "active":
+            icon = "🔄"
+        else:
+            icon = "⏳"
             
-            st.success(f"✅ Successfully loaded CSV with {len(df)} rows and {len(df.columns)} columns")
-            
-            # Show preview
-            st.subheader("📋 Data Preview")
-            st.dataframe(df.head(), use_container_width=True)
-            
-            # Store data and proceed
-            st.session_state.csv_data = df
-            
-            if st.button("🔍 Analyze Data", type="primary"):
-                st.session_state.current_step = 'analysis'
-                st.rerun()
+        st.markdown(f"""
+        <div class="workflow-step {status_class}">
+            <span class="step-number">{i+1}</span>
+            {icon} {step["name"]}
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
+def show_modern_upload_interface():
+    st.markdown("""
+    <div style="text-align: center; margin: 2rem 0;">
+        <h2>🎯 Transform Your Data with AI</h2>
+        <p>Upload your CSV and let our AI agents create intelligent dashboards and insights in minutes</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Create columns for centering
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown("""
+        <div class="upload-area">
+            <h3>📁 Upload Your CSV File</h3>
+            <p>Drag and drop your CSV file here, or click to browse</p>
+            <small>Supports CSV files up to 10MB</small>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        uploaded_file = st.file_uploader(
+            "Choose File",
+            type=['csv'],
+            help="Upload your CSV file to begin the analysis",
+            label_visibility="collapsed"
+        )
+        
+        if uploaded_file is not None:
+            try:
+                with st.spinner("Processing your CSV file..."):
+                    processor = CSVProcessor()
+                    df = processor.load_csv(uploaded_file)
                 
-        except Exception as e:
-            st.error(f"❌ Error loading CSV: {str(e)}")
+                st.success(f"✅ Successfully loaded CSV with {len(df)} rows and {len(df.columns)} columns")
+                
+                # Show preview in an expander
+                with st.expander("📋 Preview Data", expanded=True):
+                    st.dataframe(df.head(), use_container_width=True)
+                
+                st.session_state.csv_data = df
+                
+                if st.button("🚀 Start AI Analysis", type="primary", use_container_width=True):
+                    st.session_state.current_step = 'analysis'
+                    st.rerun()
+                    
+            except Exception as e:
+                st.error(f"❌ Error loading CSV: {str(e)}")
 
-def show_analysis_interface(data_agent):
+def show_modern_analysis_interface(data_agent):
     st.header("🧠 Step 2: AI Data Analysis")
     
     if st.session_state.csv_data is not None:
@@ -149,7 +303,7 @@ def show_analysis_interface(data_agent):
                 if st.button("🔄 Retry Analysis"):
                     st.rerun()
 
-def show_planning_interface(planner_agent):
+def show_modern_planning_interface(planner_agent):
     st.header("🎯 Step 3: Choose Your Task")
     
     if st.session_state.analysis_results:
@@ -179,7 +333,7 @@ def show_planning_interface(planner_agent):
         for task_id, task_info in tasks.items():
             st.write(f"**{task_info['name']}:** {task_info['description']}")
 
-def show_chat_interface(executor_agent):
+def show_modern_chat_interface(executor_agent):
     st.header("💬 Chat with Your Data")
     
     # Back button
@@ -231,7 +385,7 @@ def show_chat_interface(executor_agent):
             except Exception as e:
                 st.error(f"❌ Error processing question: {str(e)}")
 
-def show_visualization_interface(viz_agent, executor_agent):
+def show_modern_visualization_interface(viz_agent, executor_agent):
     st.header("📈 Create Visualizations")
     
     # Back button
@@ -298,7 +452,7 @@ def show_visualization_interface(viz_agent, executor_agent):
                                     st.plotly_chart(
                                         chart_data['figure'], 
                                         use_container_width=True,
-                                        key=f"chart_{i+j}"
+                                        key=f"dashboard_chart_{i}_{j}"
                                     )
                     
                     # Store in memory
@@ -311,13 +465,17 @@ def show_visualization_interface(viz_agent, executor_agent):
                     st.error(f"❌ Error generating dashboard: {str(e)}")
         
         # Additional visualization request
-        st.subheader("💬 Request Additional Visualizations")
+        st.markdown("---")
+        st.markdown("### 💬 Request Additional Visualizations")
+        st.markdown("Describe what you'd like to visualize:")
+        
         custom_request = st.text_input(
-            "Describe what you'd like to visualize:",
-            placeholder="e.g., Show me sales trends by region over time"
+            "Custom request",
+            placeholder="e.g., Show me sales trends by region over time",
+            label_visibility="collapsed"
         )
         
-        if st.button("🎯 Create Custom Visualization") and custom_request:
+        if st.button("🎯 Create Custom Visualization", use_container_width=True) and custom_request:
             with st.spinner("🤖 Creating custom visualization..."):
                 try:
                     custom_chart = executor_agent.create_custom_visualization(
@@ -327,12 +485,15 @@ def show_visualization_interface(viz_agent, executor_agent):
                     )
                     
                     if custom_chart:
-                        st.plotly_chart(custom_chart, use_container_width=True)
+                        st.markdown("### Your Interactive Dashboard")
+                        st.plotly_chart(custom_chart, use_container_width=True, key=f"custom_chart_{len(st.session_state.chat_history)}")
+                    else:
+                        st.error("Could not create the requested visualization. Please try a different description.")
                         
                 except Exception as e:
                     st.error(f"❌ Error creating custom visualization: {str(e)}")
 
-def show_memory_sidebar():
+def show_modern_sidebar():
     with st.sidebar:
         st.header("🧠 Session Memory")
         

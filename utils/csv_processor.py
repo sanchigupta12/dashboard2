@@ -127,8 +127,8 @@ class CSVProcessor:
                     numeric_series = pd.to_numeric(cleaned_series, errors='coerce')
                     
                     # If more than 50% of non-null values can be converted, assume it's numeric
-                    non_null_count = cleaned_series.count()
-                    converted_count = numeric_series.count()
+                    non_null_count = len(cleaned_series.dropna())
+                    converted_count = len(numeric_series.dropna())
                     
                     if non_null_count > 0 and (converted_count / non_null_count) > 0.5:
                         df[col] = numeric_series
@@ -161,15 +161,17 @@ class CSVProcessor:
         cols = pd.Series(df.columns)
         
         # Find duplicates
-        duplicated_cols = cols[cols.duplicated()].unique().tolist()
+        duplicated_mask = cols.duplicated()
+        duplicated_cols = cols[duplicated_mask].drop_duplicates().tolist()
         
         for dup_col in duplicated_cols:
             # Get indices of duplicate columns
-            dup_indices = cols[cols == dup_col].index
+            dup_indices = cols[cols == dup_col].index.tolist()
             
             # Rename duplicates with suffix
-            for i, idx in enumerate(list(dup_indices)[1:], 1):
-                cols[idx] = f"{dup_col}_{i}"
+            dup_indices_list = list(dup_indices)
+            for i, idx in enumerate(dup_indices_list[1:], 1):
+                cols.iloc[idx] = f"{dup_col}_{i}"
         
         df.columns = cols
         return df
